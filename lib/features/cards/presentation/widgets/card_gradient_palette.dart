@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 
 class CardGradientPalette {
+  static const List<String> themeNames = [
+    'Deep Navy',
+    'Charcoal Lavender',
+    'Royal Purple',
+    'Emerald Jade',
+    'Electric Violet',
+  ];
+
   static const List<LinearGradient> gradients = [
     // 0: Deep Navy / Midnight Blue
     LinearGradient(

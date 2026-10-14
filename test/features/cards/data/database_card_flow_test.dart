@@ -52,6 +52,7 @@ void main() {
       totalLimit: 150000,
       billingDay: 12,
       dueDay: 2,
+      colorGradientIdx: 3,
       createdAt: DateTime.utc(2026, 10, 14),
     );
 
@@ -66,12 +67,14 @@ void main() {
     ]);
     expect((states[1] as CardAddedSuccessState).card.id, card.id);
     expect((states[3] as CardLoadedState).cards.single.id, card.id);
+    expect((states[3] as CardLoadedState).cards.single.colorGradientIdx, 3);
 
     final database = await databaseHelper.database;
     final cards = await database.query(DatabaseHelper.tableCards);
     expect(cards, hasLength(1));
     expect(cards.single[DatabaseHelper.columnCardId], card.id);
     expect(cards.single[DatabaseHelper.columnLastFour], '4821');
+    expect(cards.single[DatabaseHelper.columnColorGradientIdx], 3);
     expect(
       (cards.single[DatabaseHelper.columnTotalLimit] as num).toDouble(),
       150000,

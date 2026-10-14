@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+
 import '../bloc/card_bloc.dart';
 import '../bloc/card_event.dart';
 import '../bloc/card_state.dart';
 import '../widgets/card_item_widget.dart';
+import 'card_detail_page.dart';
 import 'add_card_page.dart';
 
 class WalletHomePage extends StatefulWidget {
@@ -15,6 +17,8 @@ class WalletHomePage extends StatefulWidget {
 }
 
 class _WalletHomePageState extends State<WalletHomePage> {
+  int _currentCardIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -90,7 +94,8 @@ class _WalletHomePageState extends State<WalletHomePage> {
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4),
+                          color: Theme.of(context).colorScheme.primaryContainer
+                              .withValues(alpha: 0.4),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -129,7 +134,10 @@ class _WalletHomePageState extends State<WalletHomePage> {
                         icon: const Icon(Icons.add),
                         label: const Text('Add Your First Card'),
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -145,16 +153,23 @@ class _WalletHomePageState extends State<WalletHomePage> {
               0.0,
               (sum, item) => sum + item.totalLimit,
             );
-            final currencyFormatter = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+            final currencyFormatter = NumberFormat.currency(
+              symbol: '₹',
+              decimalDigits: 0,
+            );
 
             return ListView(
               padding: const EdgeInsets.symmetric(vertical: 8),
               children: [
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -183,12 +198,70 @@ class _WalletHomePageState extends State<WalletHomePage> {
                         ],
                       ),
                       Chip(
-                        label: Text('${cards.length} ${cards.length == 1 ? 'Card' : 'Cards'}'),
+                        label: Text(
+                          '${cards.length} ${cards.length == 1 ? 'Card' : 'Cards'}',
+                        ),
                       ),
                     ],
                   ),
                 ),
-                ...cards.map((card) => CardItemWidget(card: card)),
+                SizedBox(
+                  height: 232,
+                  child: PageView.builder(
+                    key: const PageStorageKey<String>('walletCardCarousel'),
+                    itemCount: cards.length,
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentCardIndex = index;
+                      });
+                    },
+                    itemBuilder: (context, index) {
+                      final card = cards[index];
+                      return CardItemWidget(
+                        key: Key('walletCard_$index'),
+                        card: card,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => CardDetailPage(card: card),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                if (cards.length > 1)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: SizedBox(
+                      height: 16,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(
+                            cards.length,
+                            (index) => AnimatedContainer(
+                              key: Key('walletPageIndicator_$index'),
+                              duration: const Duration(milliseconds: 180),
+                              width: _currentCardIndex == index ? 20 : 8,
+                              height: 8,
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                color: _currentCardIndex == index
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context)
+                                          .colorScheme
+                                          .outlineVariant,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             );
           }
