@@ -223,7 +223,10 @@ class _WalletHomePageState extends State<WalletHomePage> {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
-                              builder: (_) => CardDetailPage(card: card),
+                              builder: (_) => BlocProvider.value(
+                                value: context.read<CardBloc>(),
+                                child: CardDetailPage(card: card),
+                              ),
                             ),
                           );
                         },

@@ -6,4 +6,7 @@ abstract class CardRepository {
   Future<Either<Failure, CardEntity>> addCard(CardEntity card);
   Future<Either<Failure, List<CardEntity>>> getActiveCards();
   Future<Either<Failure, CardEntity?>> getCardById(String id);
+  Future<Either<Failure, CardEntity>> updateActiveCard(CardEntity card);
+  Future<Either<Failure, bool>> archiveActiveCard(String id);
+  Future<Either<Failure, bool>> deleteActiveCard(String id);
 }

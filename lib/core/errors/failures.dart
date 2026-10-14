@@ -16,3 +16,7 @@ class DatabaseFailure extends Failure {
 class ValidationFailure extends Failure {
   const ValidationFailure([super.message = 'Validation failed.']);
 }
+
+class NotFoundFailure extends Failure {
+  const NotFoundFailure([super.message = 'The active card was not found.']);
+}

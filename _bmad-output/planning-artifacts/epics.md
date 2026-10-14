@@ -148,7 +148,7 @@ So that my wallet stays accurate as banks update my terms or when I close accoun
 **When** the user edits the credit limit or billing/due dates and taps Save
 **Then** the updated values are committed to SQLite and reflected across the dashboard
 **And** when the user chooses "Archive Card", `is_archived` is set to 1, removing the card from active due date lists while preserving historical statements and transactions
-**And** when the user chooses "Delete Card", a destructive confirmation dialog is required, cascading removal to associated bills and transactions if confirmed.
+**And** when the user chooses "Delete Card", a destructive confirmation dialog is required and the card is permanently deleted if confirmed. Each feature story that introduces bills, transactions, or EMIs must add and integration-test the corresponding card-linked deletion cascade; Story 1.3 does not create those child tables.
 
 ---
 
@@ -231,6 +231,7 @@ So that I don't receive annoying phantom alerts for already-paid bills.
 **Then** all pending notification alarms for that bill ID are immediately canceled
 **And** when the user records a partial payment, the notifications are rescheduled with updated remaining amount text
 **And** when the app launches after a device reboot, an idempotent reconciliation check restores all active scheduled alarms for currently unpaid bills.
+**And** when a card's due day is edited, the reconciliation service is invoked for each affected active unpaid bill so its scheduled alerts are reconciled against the bill's persisted due date.
 
 ---
 

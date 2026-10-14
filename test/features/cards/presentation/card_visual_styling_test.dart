@@ -4,7 +4,10 @@ import 'package:credit_bill_system/core/errors/either.dart';
 import 'package:credit_bill_system/features/cards/domain/entities/card_entity.dart';
 import 'package:credit_bill_system/features/cards/domain/repositories/card_repository.dart';
 import 'package:credit_bill_system/features/cards/domain/usecases/add_card_usecase.dart';
+import 'package:credit_bill_system/features/cards/domain/usecases/archive_card_usecase.dart';
+import 'package:credit_bill_system/features/cards/domain/usecases/delete_card_usecase.dart';
 import 'package:credit_bill_system/features/cards/domain/usecases/get_cards_usecase.dart';
+import 'package:credit_bill_system/features/cards/domain/usecases/update_card_usecase.dart';
 import 'package:credit_bill_system/features/cards/presentation/bloc/card_bloc.dart';
 import 'package:credit_bill_system/features/cards/presentation/bloc/card_event.dart';
 import 'package:credit_bill_system/features/cards/presentation/pages/add_card_page.dart';
@@ -65,6 +68,9 @@ void main() {
   CardBloc createBloc() => CardBloc(
     getCardsUseCase: GetCardsUseCase(repository),
     addCardUseCase: AddCardUseCase(repository),
+    updateCardUseCase: UpdateCardUseCase(repository),
+    archiveCardUseCase: ArchiveCardUseCase(repository),
+    deleteCardUseCase: DeleteCardUseCase(repository),
   );
 
   testWidgets('theme selection updates the creation preview immediately', (
@@ -81,6 +87,7 @@ void main() {
     );
 
     expect(CardGradientPalette.themeNames, hasLength(5));
+    expect(CardEntity.gradientThemeCount, CardGradientPalette.gradients.length);
     expect(
       tester
               .getSemantics(find.byKey(const Key('gradientOption_0')))

@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 
 class CardEntity extends Equatable {
+  static const int gradientThemeCount = 5;
+
   final String id;
   final String bankName;
   final String nickname;
@@ -29,16 +31,16 @@ class CardEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        bankName,
-        nickname,
-        lastFour,
-        network,
-        totalLimit,
-        billingDay,
-        dueDay,
-        colorGradientIdx,
-        isArchived,
-        createdAt,
-      ];
+    id,
+    bankName,
+    nickname,
+    lastFour,
+    network,
+    totalLimit,
+    billingDay,
+    dueDay,
+    colorGradientIdx,
+    isArchived,
+    createdAt,
+  ];
 }

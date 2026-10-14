@@ -6,7 +6,10 @@ import 'package:credit_bill_system/core/database/database_helper.dart';
 import 'package:credit_bill_system/features/cards/domain/entities/card_entity.dart';
 import 'package:credit_bill_system/features/cards/domain/repositories/card_repository.dart';
 import 'package:credit_bill_system/features/cards/domain/usecases/add_card_usecase.dart';
+import 'package:credit_bill_system/features/cards/domain/usecases/archive_card_usecase.dart';
+import 'package:credit_bill_system/features/cards/domain/usecases/delete_card_usecase.dart';
 import 'package:credit_bill_system/features/cards/domain/usecases/get_cards_usecase.dart';
+import 'package:credit_bill_system/features/cards/domain/usecases/update_card_usecase.dart';
 import 'package:credit_bill_system/features/cards/presentation/bloc/card_bloc.dart';
 import 'package:credit_bill_system/features/cards/presentation/pages/wallet_home_page.dart';
 import 'package:credit_bill_system/features/cards/presentation/pages/add_card_page.dart';
@@ -51,6 +54,9 @@ void main() {
         create: (_) => CardBloc(
           getCardsUseCase: getCardsUseCase,
           addCardUseCase: addCardUseCase,
+          updateCardUseCase: UpdateCardUseCase(mockCardRepository),
+          archiveCardUseCase: ArchiveCardUseCase(mockCardRepository),
+          deleteCardUseCase: DeleteCardUseCase(mockCardRepository),
         ),
         child: const WalletHomePage(),
       ),

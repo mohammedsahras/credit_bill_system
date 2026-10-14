@@ -40,6 +40,48 @@ class CardRepositoryImpl implements CardRepository {
       return DatabaseFailure('Failed to fetch card: ${e.toString()}').asLeft();
     }
   }
+
+  @override
+  Future<Either<Failure, CardEntity>> updateActiveCard(CardEntity card) async {
+    try {
+      final updatedRows = await localDataSource.updateActiveCard(
+        CardModel.fromEntity(card),
+      );
+      if (updatedRows == 0) {
+        return const NotFoundFailure().asLeft();
+      }
+      return Right(card);
+    } catch (e) {
+      return DatabaseFailure('Failed to update card: ${e.toString()}').asLeft();
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> archiveActiveCard(String id) async {
+    try {
+      final updatedRows = await localDataSource.archiveActiveCard(id);
+      if (updatedRows == 0) {
+        return const NotFoundFailure().asLeft();
+      }
+      return const Right(true);
+    } catch (e) {
+      return DatabaseFailure('Failed to archive card: ${e.toString()}')
+          .asLeft();
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> deleteActiveCard(String id) async {
+    try {
+      final deletedRows = await localDataSource.deleteActiveCard(id);
+      if (deletedRows == 0) {
+        return const NotFoundFailure().asLeft();
+      }
+      return const Right(true);
+    } catch (e) {
+      return DatabaseFailure('Failed to delete card: ${e.toString()}').asLeft();
+    }
+  }
 }
 
 extension FailureLeftExt on Failure {
