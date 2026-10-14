@@ -1,0 +1,75 @@
+# generated: 10-13-2026 16:53
+# project: credit_bill_system
+# project_key: CBS
+# tracking_system: file-system
+# story_location: "_bmad-output/implementation-artifacts"
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
+generated: 10-13-2026 16:53
+last_updated: 10-14-2026 11:45
+project: credit_bill_system
+project_key: CBS
+tracking_system: file-system
+story_location: "_bmad-output/implementation-artifacts"
+
+development_status:
+  epic-1: in-progress
+  1-1-project-bootstrap-sqlite-database-setup-with-add-card-flow: review
+  1-2-custom-card-visual-styling-bank-gradient-themes: backlog
+  1-3-edit-card-parameters-safe-archival-deletion: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-log-monthly-statement-bill-with-countdown-badge: backlog
+  2-2-settle-bill-payments-full-and-partial: backlog
+  2-3-automated-billing-cycle-rollover: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-offline-local-notification-scheduling-service: backlog
+  3-2-reactive-notification-reconciliation-boot-recovery: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-real-time-aggregate-per-card-credit-utilization-gauge: backlog
+  4-2-what-if-purchase-simulator: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-log-categorized-card-expense: backlog
+  5-2-monthly-visual-spend-breakdown-charts: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-create-manage-active-card-emis: backlog
+  6-2-itemize-monthly-emi-installments-in-card-bills: backlog
+  epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-biometric-app-lock-task-switcher-privacy-shield: backlog
+  7-2-encrypted-local-database-backup-restore: backlog
+  epic-7-retrospective: optional
+
+action_items: []
