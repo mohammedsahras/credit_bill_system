@@ -79,22 +79,20 @@ sequenceDiagram
     participant SaveBillUC as SaveBillUseCase
     participant BillRepo as BillRepositoryImpl
     participant SQLite as SQLite Database (sqflite)
-    participant NotifService as NotificationReconciliationService
 
     User->>BillUI: Enters Total Due & Due Date, taps Save
     BillUI->>BillBloc: Add event SaveBillEvent(cardId, amount, dueDate)
     BillBloc->>SaveBillUC: execute(billEntity)
     SaveBillUC->>BillRepo: saveBill(billEntity)
-    BillRepo->>SQLite: INSERT OR REPLACE INTO bills (...)
+    BillRepo->>SQLite: INSERT or update the unpaid bill for card cycle
     SQLite-->>BillRepo: Success
-    SaveBillUC->>NotifService: reconcileForBill(billEntity)
-    NotifService->>NotifService: Cancel existing alarms for billId
-    NotifService->>NotifService: Schedule 7d, 3d, 1d, and 0d local alarms
     BillRepo-->>SaveBillUC: Right(savedBill)
     SaveBillUC-->>BillBloc: Right(savedBill)
     BillBloc->>BillUI: Emit BillSavedState(bill)
     BillUI-->>User: Display updated countdown badge & success toast
 ```
+
+Story 2.1 persists bills before notification scheduling is introduced. Story 3.1 initializes scheduling by reconciling previously stored active unpaid bills, and schedules eligible future bills on create or update thereafter.
 
 ---
 
@@ -195,11 +193,11 @@ CREATE TABLE IF NOT EXISTS bills (
     amount_paid REAL NOT NULL DEFAULT 0.0 CHECK(amount_paid >= 0),
     status TEXT NOT NULL CHECK(status IN ('unpaid', 'partially_paid', 'paid')),
     updated_at TEXT NOT NULL,
-    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
+    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
+    UNIQUE (card_id, cycle_month)
 );
 
 CREATE INDEX IF NOT EXISTS idx_bills_card_due ON bills(card_id, due_date);
-CREATE INDEX IF NOT EXISTS idx_bills_status ON bills(status);
 
 -- 3. Transactions Table
 CREATE TABLE IF NOT EXISTS transactions (

@@ -20,3 +20,9 @@ class ValidationFailure extends Failure {
 class NotFoundFailure extends Failure {
   const NotFoundFailure([super.message = 'The active card was not found.']);
 }
+
+class ConflictFailure extends Failure {
+  const ConflictFailure([
+    super.message = 'The requested change conflicts with saved data.',
+  ]);
+}

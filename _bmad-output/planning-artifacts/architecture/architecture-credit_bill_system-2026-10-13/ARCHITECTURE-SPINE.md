@@ -81,7 +81,7 @@ flowchart LR
 - **Binds:** `features/bills/`, `features/cards/`, `core/services/notification_service.dart`
 - **Prevents:** Phantom alerts for paid bills, missed alarms after device reboots, and out-of-sync notification offsets.
 - **Rule:**
-  1. Every mutation to a Bill (create, amount update, full settlement) must invoke `NotificationReconciliationService.syncForBill(billId)`. Once bill records and the reconciliation service exist, a Card due-day edit must invoke reconciliation for each affected active bill ID. Story 3.2 owns wiring card due-day mutations to this service; before that capability exists, Story 1.3 persists the card's due day without notification reconciliation.
+  1. Once `NotificationReconciliationService` exists, bill creation and updates must invoke `syncForBill(billId)`. Story 2.1 persists bills without scheduling because the service is introduced in Story 3.1; Story 3.1 must reconcile already-stored active unpaid bills as well as newly created or updated bills. Full payment cancels alerts and partial payment reschedules them under Story 3.2. Once bill records and the reconciliation service exist, a Card due-day edit must invoke reconciliation for each affected active bill ID. Story 3.2 owns wiring card due-day mutations; before that capability exists, Story 1.3 persists the card's due day without notification reconciliation.
   2. Marking a bill as `Paid` must immediately cancel all pending local notification IDs tied to that bill's cycle.
   3. On app cold launch, an idempotent background reconciliation sweep verifies and reschedules any pending active alerts with `flutter_local_notifications`.
 

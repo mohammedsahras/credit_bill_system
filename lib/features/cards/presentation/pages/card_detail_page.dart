@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../bills/domain/entities/bill_entity.dart';
 import '../../domain/entities/card_entity.dart';
 import '../bloc/card_bloc.dart';
 import '../bloc/card_event.dart';
@@ -10,8 +11,19 @@ import 'edit_card_page.dart';
 
 class CardDetailPage extends StatefulWidget {
   final CardEntity card;
+  final BillEntity? bill;
+  final BillEntity? currentCycleBill;
+  final Widget Function(BillEntity bill)? billBadgeBuilder;
+  final Future<BillEntity?> Function(BillEntity? existingBill)? onEditBill;
 
-  const CardDetailPage({super.key, required this.card});
+  const CardDetailPage({
+    super.key,
+    required this.card,
+    this.bill,
+    this.currentCycleBill,
+    this.billBadgeBuilder,
+    this.onEditBill,
+  });
 
   @override
   State<CardDetailPage> createState() => _CardDetailPageState();
@@ -19,12 +31,26 @@ class CardDetailPage extends StatefulWidget {
 
 class _CardDetailPageState extends State<CardDetailPage> {
   late CardEntity _card;
+  BillEntity? _bill;
+  BillEntity? _currentCycleBill;
   bool _isMutating = false;
 
   @override
   void initState() {
     super.initState();
     _card = widget.card;
+    _bill = widget.bill;
+    _currentCycleBill = widget.currentCycleBill;
+  }
+
+  Future<void> _editBill() async {
+    final savedBill = await widget.onEditBill?.call(_currentCycleBill);
+    if (savedBill != null && mounted) {
+      setState(() {
+        _currentCycleBill = savedBill;
+        if (savedBill.status != BillStatus.paid) _bill = savedBill;
+      });
+    }
   }
 
   Future<void> _editCard() async {
@@ -150,6 +176,9 @@ class _CardDetailPageState extends State<CardDetailPage> {
                 card: _card,
                 height: 240,
                 faceKey: const Key('cardDetailFace'),
+                billBadge: _bill == null
+                    ? null
+                    : widget.billBadgeBuilder?.call(_bill!),
               ),
               const SizedBox(height: 16),
               Padding(
@@ -157,6 +186,19 @@ class _CardDetailPageState extends State<CardDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    FilledButton.icon(
+                      key: const Key('logBillAction'),
+                      onPressed: _isMutating || widget.onEditBill == null
+                          ? null
+                          : _editBill,
+                      icon: const Icon(Icons.receipt_long),
+                      label: Text(
+                        _currentCycleBill == null
+                            ? 'Log Current Cycle Bill'
+                            : 'Update Current Cycle Bill',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     FilledButton.icon(
                       key: const Key('editCardAction'),
                       onPressed: _isMutating ? null : _editCard,

@@ -1,6 +1,12 @@
 import 'dart:ui' show Tristate;
 
 import 'package:credit_bill_system/core/errors/either.dart';
+import 'package:credit_bill_system/core/errors/failures.dart';
+import 'package:credit_bill_system/features/bills/domain/entities/bill_entity.dart';
+import 'package:credit_bill_system/features/bills/domain/repositories/bill_repository.dart';
+import 'package:credit_bill_system/features/bills/domain/usecases/get_active_bills_usecase.dart';
+import 'package:credit_bill_system/features/bills/domain/usecases/save_bill_usecase.dart';
+import 'package:credit_bill_system/features/bills/presentation/bloc/bill_bloc.dart';
 import 'package:credit_bill_system/features/cards/domain/entities/card_entity.dart';
 import 'package:credit_bill_system/features/cards/domain/repositories/card_repository.dart';
 import 'package:credit_bill_system/features/cards/domain/usecases/add_card_usecase.dart';
@@ -22,8 +28,11 @@ import 'package:mocktail/mocktail.dart';
 
 class _MockCardRepository extends Mock implements CardRepository {}
 
+class _MockBillRepository extends Mock implements BillRepository {}
+
 void main() {
   late _MockCardRepository repository;
+  late _MockBillRepository billRepository;
 
   setUpAll(() {
     registerFallbackValue(
@@ -43,6 +52,9 @@ void main() {
 
   setUp(() {
     repository = _MockCardRepository();
+    billRepository = _MockBillRepository();
+    when(() => billRepository.getActiveBills())
+        .thenAnswer((_) async => const Right<Failure, List<BillEntity>>([]));
   });
 
   CardEntity card({
@@ -71,6 +83,14 @@ void main() {
     updateCardUseCase: UpdateCardUseCase(repository),
     archiveCardUseCase: ArchiveCardUseCase(repository),
     deleteCardUseCase: DeleteCardUseCase(repository),
+  );
+
+  BillBloc createBillBloc() => BillBloc(
+    getActiveBillsUseCase: GetActiveBillsUseCase(billRepository),
+    saveBillUseCase: SaveBillUseCase(
+      billRepository: billRepository,
+      cardRepository: repository,
+    ),
   );
 
   testWidgets('theme selection updates the creation preview immediately', (
@@ -189,11 +209,19 @@ void main() {
       ),
     );
     final bloc = createBloc();
+    final billBloc = createBillBloc();
     addTearDown(bloc.close);
+    addTearDown(billBloc.close);
 
     await tester.pumpWidget(
       MaterialApp(
-        home: BlocProvider.value(value: bloc, child: const WalletHomePage()),
+        home: MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: bloc),
+            BlocProvider.value(value: billBloc),
+          ],
+          child: const WalletHomePage(),
+        ),
       ),
     );
     await tester.pumpAndSettle();

@@ -166,9 +166,12 @@ So that I have clear visibility into payment deadlines and urgency.
 
 **Given** an active card in the wallet
 **When** the user opens "Update Bill" and inputs Total Due and Minimum Due (validated: Minimum Due <= Total Due)
-**Then** a new record is saved in the `bills` table with status `unpaid`
+**Then** the bill is saved in the `bills` table with status `unpaid`, creating a row for a new cycle or updating that cycle's existing unpaid row
 **And** the card dashboard displays a color-coded countdown badge: Green (>7 days), Amber (3-7 days), or Red (<3 days / overdue)
-**And** the card's available credit reflects the unbilled and billed balances.
+**And** there is at most one bill per card and statement cycle; "Update Bill" edits the existing unpaid bill for that cycle.
+**And** full available credit including billed and unbilled balances is deferred until Story 5.1 provides persisted expense data; Story 2.1 must not present a bill-only estimate as full available credit.
+**And** statement date defaults from the card's billing day in the selected statement month, due date defaults from its due day in the following month (clamped to month end), and a due date before statement date is rejected.
+**And** statement edits are rejected after any payment has been recorded so payment history is unchanged.
 
 ### Story 2.2: Settle Bill Payments (Full and Partial)
 
@@ -216,7 +219,8 @@ So that I never miss a payment deadline even when my device is offline.
 **When** the bill is logged or updated
 **Then** local notification alarms are scheduled with `flutter_local_notifications` at 7 days, 3 days, 1 day prior, and 9:00 AM on the due date
 **And** notifications fire deterministically without any remote network or push server connection
-**And** tapping a notification launches the app directly into the bill payment settlement screen.
+**And** tapping a notification launches the app directly into the bill payment settlement screen
+**And** when notification scheduling is first introduced, all previously stored active unpaid bills with eligible future due dates are reconciled and scheduled.
 
 ### Story 3.2: Reactive Notification Reconciliation & Boot Recovery
 
@@ -285,6 +289,7 @@ So that I can maintain a record of my daily credit card spending.
 **When** the user taps "Log Expense", enters an amount, selects a category (Dining, Groceries, Fuel, Shopping, Travel, Utilities, Entertainment, Other), and adds an optional note
 **Then** a new record is saved in SQLite `transactions` linked to the `card_id`
 **And** the card's current unbilled balance updates immediately
+**And** available credit is calculated using the active card limit minus outstanding billed and unbilled balances
 **And** the transaction appears in the card's recent transaction feed sorted by date descending.
 
 ### Story 5.2: Monthly Visual Spend Breakdown Charts

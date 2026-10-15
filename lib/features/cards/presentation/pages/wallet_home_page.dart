@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+import '../../../bills/domain/entities/bill_entity.dart';
+import '../../domain/entities/card_entity.dart';
 import '../bloc/card_bloc.dart';
 import '../bloc/card_event.dart';
 import '../bloc/card_state.dart';
@@ -10,7 +12,21 @@ import 'card_detail_page.dart';
 import 'add_card_page.dart';
 
 class WalletHomePage extends StatefulWidget {
-  const WalletHomePage({super.key});
+  final List<BillEntity> bills;
+  final Widget Function(BillEntity bill)? billBadgeBuilder;
+  final Future<BillEntity?> Function(
+    BuildContext context,
+    CardEntity card,
+    BillEntity? existingBill,
+  )?
+  onEditBill;
+
+  const WalletHomePage({
+    super.key,
+    this.bills = const [],
+    this.billBadgeBuilder,
+    this.onEditBill,
+  });
 
   @override
   State<WalletHomePage> createState() => _WalletHomePageState();
@@ -206,7 +222,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
                   ),
                 ),
                 SizedBox(
-                  height: 232,
+                  height: 264,
                   child: PageView.builder(
                     key: const PageStorageKey<String>('walletCardCarousel'),
                     itemCount: cards.length,
@@ -217,15 +233,56 @@ class _WalletHomePageState extends State<WalletHomePage> {
                     },
                     itemBuilder: (context, index) {
                       final card = cards[index];
+                      BillEntity? bill;
+                      BillEntity? currentCycleBill;
+                      {
+                        final cardBills = widget.bills
+                            .where((item) => item.cardId == card.id)
+                            .toList();
+                        final now = DateTime.now();
+                        final currentCycle =
+                            '${now.year.toString().padLeft(4, '0')}-'
+                            '${now.month.toString().padLeft(2, '0')}';
+                        for (final candidate in cardBills) {
+                          if (candidate.cycleMonth == currentCycle) {
+                            currentCycleBill = candidate;
+                            break;
+                          }
+                        }
+                        final unpaidBills =
+                            cardBills
+                                .where((item) => item.status != BillStatus.paid)
+                                .toList()
+                              ..sort(
+                                (first, second) =>
+                                    first.dueDate.compareTo(second.dueDate),
+                              );
+                        if (unpaidBills.isNotEmpty) bill = unpaidBills.first;
+                      }
                       return CardItemWidget(
                         key: Key('walletCard_$index'),
                         card: card,
+                        billBadge: bill == null
+                            ? null
+                            : widget.billBadgeBuilder?.call(bill),
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
                               builder: (_) => BlocProvider.value(
                                 value: context.read<CardBloc>(),
-                                child: CardDetailPage(card: card),
+                                child: CardDetailPage(
+                                  card: card,
+                                  bill: bill,
+                                  currentCycleBill: currentCycleBill,
+                                  billBadgeBuilder: widget.billBadgeBuilder,
+                                  onEditBill: widget.onEditBill == null
+                                      ? null
+                                      : (existingBill) => widget.onEditBill!(
+                                          context,
+                                          card,
+                                          existingBill,
+                                        ),
+                                ),
                               ),
                             ),
                           );

@@ -3,6 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:credit_bill_system/core/errors/either.dart';
 import 'package:credit_bill_system/core/database/database_helper.dart';
+import 'package:credit_bill_system/core/errors/failures.dart';
+import 'package:credit_bill_system/features/bills/domain/entities/bill_entity.dart';
+import 'package:credit_bill_system/features/bills/domain/repositories/bill_repository.dart';
+import 'package:credit_bill_system/features/bills/data/datasources/bill_local_data_source.dart';
+import 'package:credit_bill_system/features/bills/domain/usecases/get_active_bills_usecase.dart';
+import 'package:credit_bill_system/features/bills/domain/usecases/save_bill_usecase.dart';
+import 'package:credit_bill_system/features/bills/presentation/bloc/bill_bloc.dart';
+import 'package:credit_bill_system/features/bills/presentation/pages/update_bill_page.dart';
 import 'package:credit_bill_system/features/cards/domain/entities/card_entity.dart';
 import 'package:credit_bill_system/features/cards/domain/repositories/card_repository.dart';
 import 'package:credit_bill_system/features/cards/domain/usecases/add_card_usecase.dart';
@@ -19,10 +27,15 @@ import 'package:credit_bill_system/app.dart';
 
 class MockCardRepository extends Mock implements CardRepository {}
 
+class MockBillRepository extends Mock implements BillRepository {}
+
 class MockDatabase extends Mock implements Database {}
+
+class MockTransaction extends Mock implements Transaction {}
 
 void main() {
   late MockCardRepository mockCardRepository;
+  late MockBillRepository mockBillRepository;
   late GetCardsUseCase getCardsUseCase;
   late AddCardUseCase addCardUseCase;
 
@@ -44,20 +57,36 @@ void main() {
 
   setUp(() {
     mockCardRepository = MockCardRepository();
+    mockBillRepository = MockBillRepository();
+    when(() => mockBillRepository.getActiveBills())
+        .thenAnswer((_) async => const Right<Failure, List<BillEntity>>([]));
     getCardsUseCase = GetCardsUseCase(mockCardRepository);
     addCardUseCase = AddCardUseCase(mockCardRepository);
   });
 
   Widget createWidgetUnderTest() {
     return MaterialApp(
-      home: BlocProvider<CardBloc>(
-        create: (_) => CardBloc(
-          getCardsUseCase: getCardsUseCase,
-          addCardUseCase: addCardUseCase,
-          updateCardUseCase: UpdateCardUseCase(mockCardRepository),
-          archiveCardUseCase: ArchiveCardUseCase(mockCardRepository),
-          deleteCardUseCase: DeleteCardUseCase(mockCardRepository),
-        ),
+      home: MultiBlocProvider(
+        providers: [
+          BlocProvider<CardBloc>(
+            create: (_) => CardBloc(
+              getCardsUseCase: getCardsUseCase,
+              addCardUseCase: addCardUseCase,
+              updateCardUseCase: UpdateCardUseCase(mockCardRepository),
+              archiveCardUseCase: ArchiveCardUseCase(mockCardRepository),
+              deleteCardUseCase: DeleteCardUseCase(mockCardRepository),
+            ),
+          ),
+          BlocProvider<BillBloc>(
+            create: (_) => BillBloc(
+              getActiveBillsUseCase: GetActiveBillsUseCase(mockBillRepository),
+              saveBillUseCase: SaveBillUseCase(
+                billRepository: mockBillRepository,
+                cardRepository: mockCardRepository,
+              ),
+            ),
+          ),
+        ],
         child: const WalletHomePage(),
       ),
     );
@@ -187,17 +216,23 @@ void main() {
     'production app wiring persists a valid card and displays it in wallet',
     (tester) async {
       final database = MockDatabase();
+      final transaction = MockTransaction();
       final databaseHelper = DatabaseHelper(database: database);
       final storedCards = <Map<String, Object?>>[];
+      final storedBills = <Map<String, Object?>>[];
 
       when(
         () => database.query(
           DatabaseHelper.tableCards,
+          columns: any(named: 'columns'),
           where: any(named: 'where'),
           whereArgs: any(named: 'whereArgs'),
           orderBy: any(named: 'orderBy'),
+          limit: any(named: 'limit'),
         ),
       ).thenAnswer((_) async => List.of(storedCards));
+      when(() => database.rawQuery(any(), any()))
+          .thenAnswer((_) async => List.of(storedBills));
       when(
         () => database.insert(
           DatabaseHelper.tableCards,
@@ -208,6 +243,58 @@ void main() {
         final values =
             invocation.positionalArguments[1] as Map<String, Object?>;
         storedCards.add(Map.of(values));
+        return 1;
+      });
+      when(
+        () => database.transaction<BillSaveOutcome>(
+          any(),
+          exclusive: any(named: 'exclusive'),
+        ),
+      ).thenAnswer((invocation) {
+        final action =
+            invocation.positionalArguments.single
+                as Future<BillSaveOutcome> Function(Transaction);
+        return action(transaction);
+      });
+      when(
+        () => transaction.query(
+          any(),
+          columns: any(named: 'columns'),
+          where: any(named: 'where'),
+          whereArgs: any(named: 'whereArgs'),
+          orderBy: any(named: 'orderBy'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((invocation) async {
+        final table = invocation.positionalArguments.single as String;
+        return List.of(
+          table == DatabaseHelper.tableCards ? storedCards : storedBills,
+        );
+      });
+      when(
+        () => transaction.insert(
+          DatabaseHelper.tableBills,
+          any(),
+          conflictAlgorithm: any(named: 'conflictAlgorithm'),
+        ),
+      ).thenAnswer((invocation) async {
+        final values =
+            invocation.positionalArguments[1] as Map<String, Object?>;
+        storedBills.add(Map.of(values));
+        return 1;
+      });
+      when(
+        () => transaction.update(
+          DatabaseHelper.tableBills,
+          any(),
+          where: any(named: 'where'),
+          whereArgs: any(named: 'whereArgs'),
+          conflictAlgorithm: any(named: 'conflictAlgorithm'),
+        ),
+      ).thenAnswer((invocation) async {
+        final values =
+            invocation.positionalArguments[1] as Map<String, Object?>;
+        storedBills.single.addAll(values);
         return 1;
       });
 
@@ -237,6 +324,27 @@ void main() {
       expect(find.text('Millennia'), findsOneWidget);
       expect(find.text('HDFC'), findsOneWidget);
       expect(storedCards, hasLength(1));
+
+      await tester.tap(find.byKey(const Key('walletCard_0')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('logBillAction')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('totalAmountDueField')),
+        '1250',
+      );
+      await tester.enterText(
+        find.byKey(const Key('minimumAmountDueField')),
+        '100',
+      );
+      await tester.ensureVisible(find.byKey(const Key('saveBillButton')));
+      await tester.tap(find.byKey(const Key('saveBillButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(UpdateBillPage), findsNothing);
+      expect(find.byKey(const Key('billCountdownBadge')), findsOneWidget);
+      expect(storedBills, hasLength(1));
+      expect(storedBills.single['total_amount_due'], 1250);
     },
   );
 }
