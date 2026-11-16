@@ -46,8 +46,8 @@ class BillDateCalculator {
   }
 
   int daysUntil(DateTime dueDate, DateTime today) {
-    final due = DateTime.utc(dueDate.year, dueDate.month, dueDate.day);
-    final localToday = DateTime.utc(today.year, today.month, today.day);
+    final due = DateTime(dueDate.year, dueDate.month, dueDate.day);
+    final localToday = DateTime(today.year, today.month, today.day);
     return due.difference(localToday).inDays;
   }
 }

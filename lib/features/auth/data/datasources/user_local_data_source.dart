@@ -62,7 +62,7 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
     final db = await databaseHelper.database;
     final maps = await db.query(
       tableUsers,
-      where: '$_columnEmail = ?',
+      where: 'LOWER($_columnEmail) = ?',
       whereArgs: [email.toLowerCase().trim()],
       limit: 1,
     );
@@ -101,7 +101,7 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
     return db.update(
       tableUsers,
       {_columnPasswordHash: newPasswordHash},
-      where: '$_columnEmail = ?',
+      where: 'LOWER($_columnEmail) = ?',
       whereArgs: [email.toLowerCase().trim()],
     );
   }
@@ -115,13 +115,13 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
     await insertUser(
       UserModel(
         id: 'demo-user-0000-0000-0000-000000000001',
-        email: 'demo@creditbill.com',
+        email: 'mohammedsahras850@gmail.com',
         fullName: 'Demo User',
-        passwordHash: 'fnv1a:1773485738',
+       passwordHash: PasswordHasher.hash('sa3002sa'),// passwordHash: 'sa3002sa',
         createdAt: DateTime(2026, 1, 1),
         isEmailVerified: true,
       ),
-    );
+    ); //fnv1a:1773485738
     return true;
   }
 

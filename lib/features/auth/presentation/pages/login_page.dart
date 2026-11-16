@@ -24,6 +24,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -32,10 +33,14 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _onSignIn() {
+  bool _isLoading = false;
+
+Future<void> _onSignIn() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
     context.read<AuthBloc>().add(
       LoginRequestedEvent(
         email: _emailController.text.trim(),
@@ -48,6 +53,14 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
+        // Reset local loading flag whenever the bloc reaches a terminal state.
+        if (state is AuthAuthenticatedState ||
+            state is AuthErrorState ||
+            state is AuthUnauthenticatedState) {
+          if (_isLoading) {
+            setState(() => _isLoading = false);
+          }
+        }
         if (state is AuthAuthenticatedState) {
           Navigator.of(context).pushReplacementNamed('/dashboard');
         } else if (state is AuthErrorState) {
@@ -121,10 +134,12 @@ class _LoginPageState extends State<LoginPage> {
                             label: 'Password',
                             hint: '••••••••',
                             controller: _passwordController,
-                            obscureText: true,
+                            obscureText: _obscurePassword,
                             textInputAction: TextInputAction.done,
                             autofillHints: const [AutofillHints.password],
-                            onToggleVisibility: () {},
+                            onToggleVisibility: () {
+                              setState(() => _obscurePassword = !_obscurePassword);
+                            },
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Password is required.';
@@ -151,8 +166,8 @@ class _LoginPageState extends State<LoginPage> {
                             builder: (context, state) {
                               return CreditBillPrimaryButton(
                                 text: 'Sign In',
-                                isLoading: state is AuthLoadingState,
-                                onPressed: state is AuthLoadingState
+                                isLoading: state is AuthLoadingState || _isLoading,
+                                onPressed: (_isLoading || state is AuthLoadingState)
                                     ? null
                                     : _onSignIn,
                               );

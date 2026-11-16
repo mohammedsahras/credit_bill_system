@@ -7,13 +7,22 @@ import '../../../../core/theme/widgets/credit_bill_text_field.dart';
 import '../../../../core/theme/credit_bill_theme.dart';
 import '../../domain/entities/customer_entity.dart';
 import '../../domain/entities/payment_entity.dart';
+import '../../domain/repositories/credit_transaction_repository.dart';
+import '../../domain/repositories/payment_repository.dart';
 
 // payment_allocation_entity imported when needed
 
 class RecordPaymentPage extends StatefulWidget {
   final CustomerEntity? customer;
+  final PaymentRepository? paymentRepository;
+  final CreditTransactionRepository? creditTransactionRepository;
 
-  const RecordPaymentPage({super.key, this.customer});
+  const RecordPaymentPage({
+    super.key,
+    this.customer,
+    this.paymentRepository,
+    this.creditTransactionRepository,
+  });
 
   @override
   State<RecordPaymentPage> createState() => _RecordPaymentPageState();
@@ -24,6 +33,32 @@ class _RecordPaymentPageState extends State<RecordPaymentPage> {
   final _amountController = TextEditingController();
   DateTime _paymentDate = DateTime.now();
   String _paymentType = 'partial';
+  bool _isSaving = false;
+  int _outstandingMinor = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOutstanding();
+  }
+
+  Future<void> _loadOutstanding() async {
+    final c = widget.customer;
+    final txRepo = widget.creditTransactionRepository;
+    final payRepo = widget.paymentRepository;
+    if (c == null || txRepo == null || payRepo == null) {
+      return;
+    }
+    final txRes = await txRepo.getTransactionsByCustomer(c.id);
+    final paidRes = await payRepo.getCustomerTotalPaid(c.id);
+    final txs = txRes.fold((_) => <dynamic>[], (v) => v);
+    final totalCredit =
+        txs.fold<int>(0, (sum, t) => sum + (t.amountMinor as int));
+    final totalPaid = paidRes.fold((_) => 0, (v) => v);
+    setState(() {
+      _outstandingMinor = totalCredit - totalPaid;
+    });
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -37,11 +72,19 @@ class _RecordPaymentPageState extends State<RecordPaymentPage> {
     }
   }
 
-  void _onSave() {
+  Future<void> _onSave() async {
+    if (_isSaving) return;
     if (!_formKey.currentState!.validate()) return;
     if (widget.customer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a customer first.')),
+      );
+      return;
+    }
+    final repo = widget.paymentRepository;
+    if (repo == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment service unavailable.')),
       );
       return;
     }
@@ -55,7 +98,15 @@ class _RecordPaymentPageState extends State<RecordPaymentPage> {
       return;
     }
     final amountMinor = (amount * 100).round();
-    // ignore: unused_local_variable
+    if (_outstandingMinor > 0 && amountMinor > _outstandingMinor) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment cannot exceed outstanding balance.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _isSaving = true);
     final payment = PaymentEntity(
       id: const Uuid().v4(),
       customerId: widget.customer!.id,
@@ -64,13 +115,24 @@ class _RecordPaymentPageState extends State<RecordPaymentPage> {
       paymentType: _paymentType,
       createdAt: DateTime.now(),
     );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Payment recorded successfully.'),
-        backgroundColor: CreditBillColors.successGreen,
-      ),
+    final result = await repo.recordPayment(payment: payment, allocations: []);
+    setState(() => _isSaving = false);
+    result.fold(
+      (failure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(failure.message)),
+        );
+      },
+      (_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment recorded successfully.'),
+            backgroundColor: CreditBillColors.successGreen,
+          ),
+        );
+        Navigator.of(context).pop();
+      },
     );
-    Navigator.of(context).pop();
   }
 
   @override
@@ -103,7 +165,7 @@ class _RecordPaymentPageState extends State<RecordPaymentPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Outstanding: Rs. 0.00',
+                      'Outstanding: Rs. ${(_outstandingMinor / 100).toStringAsFixed(2)}',
                       style: CreditBillTextTheme.screenSubheading,
                       textAlign: TextAlign.center,
                     ),
@@ -164,7 +226,12 @@ class _RecordPaymentPageState extends State<RecordPaymentPage> {
                                     selected: _paymentType == 'full',
                                     onSelected: (selected) {
                                       if (selected) {
-                                        setState(() => _paymentType = 'full');
+                                        setState(() {
+                                          _paymentType = 'full';
+                                          _amountController.text =
+                                              (_outstandingMinor / 100)
+                                                  .toStringAsFixed(2);
+                                        });
                                       }
                                     },
                                   ),
@@ -182,8 +249,8 @@ class _RecordPaymentPageState extends State<RecordPaymentPage> {
                         ),
                         const SizedBox(height: 26),
                         CreditBillPrimaryButton(
-                          text: 'Save & Exit',
-                          onPressed: _onSave,
+                          text: _isSaving ? 'Saving...' : 'Save & Exit',
+                          onPressed: _isSaving ? null : _onSave,
                         ),
                         const SizedBox(height: 24),
                       ],

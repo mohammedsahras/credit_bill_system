@@ -44,12 +44,14 @@ class CreditBillTextField extends StatefulWidget {
 }
 
 class _CreditBillTextFieldState extends State<CreditBillTextField> {
-  late bool _obscure;
-
   @override
   void initState() {
     super.initState();
-    _obscure = widget.obscureText;
+  }
+
+  @override
+  void didUpdateWidget(covariant CreditBillTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
   }
 
   @override
@@ -70,7 +72,7 @@ class _CreditBillTextFieldState extends State<CreditBillTextField> {
           height: 56,
           child: TextFormField(
             controller: widget.controller,
-            obscureText: _obscure,
+            obscureText: widget.obscureText,
             enabled: widget.enabled,
             keyboardType: widget.keyboardType,
             textInputAction: widget.textInputAction,
@@ -127,13 +129,13 @@ class _CreditBillTextFieldState extends State<CreditBillTextField> {
               errorText: widget.errorText,
               errorStyle: CreditBillTextTheme.errorText,
               suffixIcon:
-                  widget.obscureText && widget.onToggleVisibility != null
+                  widget.onToggleVisibility != null
                   ? GestureDetector(
                       onTap: widget.onToggleVisibility,
                       child: Padding(
                         padding: const EdgeInsets.all(14),
                         child: Icon(
-                          _obscure
+                          widget.obscureText
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
                           size: 20,

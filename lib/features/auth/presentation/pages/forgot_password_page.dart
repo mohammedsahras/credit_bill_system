@@ -29,7 +29,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     super.dispose();
   }
 
-  void _onReset() {
+  Future<void> _onReset() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }

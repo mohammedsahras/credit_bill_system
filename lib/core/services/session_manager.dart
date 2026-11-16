@@ -1,15 +1,27 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// Manages login session persistence using a local file.
+/// On Web, file-based storage is unavailable, so session persistence
+/// gracefully degrades to in-memory (session lost on refresh).
 class SessionManager {
   static const String _fileName = 'session.json';
 
-  static Future<File> _sessionFile() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}/$_fileName');
+  // In-memory fallback for Web where dart:io File is unavailable.
+  static Map<String, String>? _webSession;
+
+  static Future<File?> _sessionFile() async {
+    // On Web, dart:io File and getApplicationDocumentsDirectory are unavailable.
+    if (kIsWeb) return null;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      return File('${dir.path}/$_fileName');
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Saves the login session.
@@ -17,25 +29,49 @@ class SessionManager {
     required String email,
     required String fullName,
   }) async {
-    final file = await _sessionFile();
-    await file.writeAsString(
-      jsonEncode({'is_logged_in': true, 'email': email, 'full_name': fullName}),
-    );
+    if (kIsWeb) {
+      // Web: use in-memory session (persists for this tab session only).
+      _webSession = {'email': email, 'fullName': fullName};
+      return;
+    }
+    try {
+      final file = await _sessionFile();
+      if (file == null) return;
+      await file.writeAsString(
+        jsonEncode({'is_logged_in': true, 'email': email, 'full_name': fullName}),
+      );
+    } catch (e) {
+      // Session persistence is a convenience; failure must not block auth.
+      debugPrint('Session save failed: $e');
+    }
   }
 
   /// Clears the login session (logout).
   static Future<void> clearSession() async {
-    final file = await _sessionFile();
-    if (await file.exists()) {
-      await file.delete();
+    if (kIsWeb) {
+      _webSession = null;
+      return;
+    }
+    try {
+      final file = await _sessionFile();
+      if (file == null) return;
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (e) {
+      debugPrint('Session clear failed: $e');
     }
   }
 
   /// Checks if a session exists.
   static Future<bool> hasSession() async {
-    final file = await _sessionFile();
-    if (!await file.exists()) return false;
+    if (kIsWeb) {
+      return _webSession != null;
+    }
     try {
+      final file = await _sessionFile();
+      if (file == null) return false;
+      if (!await file.exists()) return false;
       final data =
           jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       return data['is_logged_in'] == true;
@@ -46,9 +82,13 @@ class SessionManager {
 
   /// Gets the saved session data.
   static Future<Map<String, String>?> getSession() async {
-    final file = await _sessionFile();
-    if (!await file.exists()) return null;
+    if (kIsWeb) {
+      return _webSession;
+    }
     try {
+      final file = await _sessionFile();
+      if (file == null) return null;
+      if (!await file.exists()) return null;
       final data =
           jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       if (data['is_logged_in'] != true) return null;

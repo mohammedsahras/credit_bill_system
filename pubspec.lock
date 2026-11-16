@@ -137,6 +137,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.9"
+  dev_build:
+    dependency: transitive
+    description:
+      name: dev_build
+      sha256: "8b5b35d31c4c08486c7f1313a378b432fafafb4ad67249bc1cb6626a308459cb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.1"
   diff_match_patch:
     dependency: transitive
     description:
@@ -235,6 +243,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.2"
+  http:
+    dependency: transitive
+    description:
+      name: http
+      sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.6.0"
   http_multi_server:
     dependency: transitive
     description:
@@ -491,6 +507,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.3"
+  process_run:
+    dependency: transitive
+    description:
+      name: process_run
+      sha256: "38569f39f8057275d6832a25f985fbea23d251a905270eacdfc6c86437282224"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.4.2"
   provider:
     dependency: transitive
     description:
@@ -593,7 +617,7 @@ packages:
     source: hosted
     version: "2.4.4"
   sqflite_common:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: sqflite_common
       sha256: da542ae39840132566b8652d6bfab108a972099a8e4377b3bcd98ae1595e6629
@@ -601,13 +625,21 @@ packages:
     source: hosted
     version: "2.5.13+1"
   sqflite_common_ffi:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: sqflite_common_ffi
       sha256: "4cb6179390549743fc1a5a2fb8f134e5ad87ce459f6f4e563531487dadd81710"
       url: "https://pub.dev"
     source: hosted
     version: "2.4.4"
+  sqflite_common_ffi_web:
+    dependency: "direct main"
+    description:
+      name: sqflite_common_ffi_web
+      sha256: "8e9cc4bb519ff421985f719a652930eb6eee77a19a33612f589314984dab9312"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.0"
   sqflite_darwin:
     dependency: transitive
     description:

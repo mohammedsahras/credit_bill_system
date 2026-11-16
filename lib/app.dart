@@ -7,16 +7,22 @@ import 'features/auth/data/datasources/user_local_data_source.dart';
 import 'features/auth/data/repositories/user_repository_impl.dart';
 import 'features/auth/domain/usecases/auth_usecases.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/data/datasources/recovery_code_local_data_source.dart';
 import 'features/customers/data/datasources/customer_local_data_source.dart';
-// credit_transaction and payment data sources imported when needed
+import 'features/customers/data/datasources/credit_transaction_local_data_source.dart';
+import 'features/customers/data/datasources/payment_local_data_source.dart';
 import 'features/customers/data/repositories/customer_repository_impl.dart';
-// credit_transaction_repository_impl and payment_repository_impl imported when needed
+import 'features/customers/data/repositories/credit_transaction_repository_impl.dart';
+import 'features/customers/data/repositories/payment_repository_impl.dart';
 import 'features/customers/domain/usecases/customer_usecases.dart';
 import 'features/customers/presentation/bloc/customer_bloc.dart';
+import 'features/customers/presentation/bloc/customer_detail_bloc.dart';
 import 'features/customers/presentation/pages/add_credit_bill_page.dart';
 import 'features/customers/presentation/pages/add_customer_page.dart';
 import 'features/customers/presentation/pages/customer_detail_page.dart';
 import 'features/customers/presentation/pages/customer_list_page.dart';
+import 'features/reports/presentation/pages/reports_page.dart';
+import 'features/reports/presentation/bloc/reports_bloc.dart';
 import 'features/customers/presentation/pages/dashboard_page.dart';
 import 'features/customers/presentation/pages/edit_customer_page.dart';
 import 'features/customers/presentation/pages/record_payment_page.dart';
@@ -85,10 +91,18 @@ class CreditBillApp extends StatelessWidget {
     final customerRepository = CustomerRepositoryImpl(
       localDataSource: customerLocalDataSource,
     );
-    // creditTransactionLocalDataSource wired later
-    // creditTransactionRepository wired later
-    // paymentLocalDataSource wired later
-    // paymentRepository wired later
+    final creditTransactionLocalDataSource =
+        CreditTransactionLocalDataSourceImpl(databaseHelper: dbHelper);
+    final creditTransactionRepository = CreditTransactionRepositoryImpl(
+      localDataSource: creditTransactionLocalDataSource,
+    );
+    final paymentLocalDataSource = PaymentLocalDataSourceImpl(
+      databaseHelper: dbHelper,
+    );
+    final paymentRepository = PaymentRepositoryImpl(
+      localDataSource: paymentLocalDataSource,
+      databaseHelper: dbHelper,
+    );
     final getCustomersUseCase = GetCustomersUseCase(
       repository: customerRepository,
     );
@@ -145,6 +159,9 @@ class CreditBillApp extends StatelessWidget {
             resetPasswordUseCase: resetPasswordUseCase,
             seedDefaultUserUseCase: seedDefaultUserUseCase,
             seedDevAccountUseCase: seedDevAccountUseCase,
+            recoveryCodeDataSource: RecoveryCodeLocalDataSourceImpl(
+              databaseHelper: DatabaseHelper(),
+            ),
           )..add(CheckAuthStatusEvent()),
         ),
         BlocProvider<CustomerBloc>(
@@ -155,6 +172,16 @@ class CreditBillApp extends StatelessWidget {
             updateCustomerUseCase: updateCustomerUseCase,
             deactivateCustomerUseCase: deactivateCustomerUseCase,
           ),
+        ),
+        BlocProvider<CustomerDetailBloc>(
+          create: (_) => CustomerDetailBloc(
+            getCustomerByIdUseCase: GetCustomerByIdUseCase(repository: customerRepository),
+            creditTransactionRepository: creditTransactionRepository,
+            paymentRepository: paymentRepository,
+          ),
+        ),
+        BlocProvider<ReportsBloc>(
+          create: (_) => ReportsBloc(databaseHelper: dbHelper),
         ),
       ],
       child: MaterialApp(
@@ -236,10 +263,16 @@ class CreditBillApp extends StatelessWidget {
             case '/record-payment':
               final customer = settings.arguments as CustomerEntity?;
               return MaterialPageRoute(
-                builder: (_) => RecordPaymentPage(customer: customer),
+                builder: (_) => RecordPaymentPage(
+                  customer: customer,
+                  paymentRepository: paymentRepository,
+                  creditTransactionRepository: creditTransactionRepository,
+                ),
               );
             case '/dashboard':
               return MaterialPageRoute(builder: (_) => const DashboardPage());
+            case '/reports':
+              return MaterialPageRoute(builder: (_) => const ReportsPage());
             default:
               return null;
           }

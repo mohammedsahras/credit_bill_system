@@ -1,5 +1,6 @@
 import 'package:bcrypt/bcrypt.dart';
 
+
 /// Utility for secure password hashing using bcrypt.
 class PasswordHasher {
   PasswordHasher._();

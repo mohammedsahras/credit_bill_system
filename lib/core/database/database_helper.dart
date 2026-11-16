@@ -113,13 +113,12 @@ class DatabaseHelper {
     );
   }
 
-  Future<void> _onConfigure(Database db) async {
+  static Future<void> _onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON;');
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE $tableCards (
+    await db.execute('''      CREATE TABLE $tableCards (
         $columnCardId TEXT PRIMARY KEY,
         $columnBankName TEXT NOT NULL,
         $columnNickname TEXT NOT NULL,
@@ -135,8 +134,7 @@ class DatabaseHelper {
       )
     ''');
 
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_cards_archived ON $tableCards($columnIsArchived);
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_cards_archived ON $tableCards($columnIsArchived)
     ''');
     await _createBillsTable(db);
     await _createUsersTable(db);
@@ -144,9 +142,33 @@ class DatabaseHelper {
     await _createRecoveryCodesTable(db);
   }
 
+  Future<void> _createBillsTable(Database db) async {
+    await db.execute('''      CREATE TABLE $tableBills (
+        $columnBillId TEXT PRIMARY KEY NOT NULL,
+        $columnBillCardId TEXT NOT NULL,
+        $columnCycleMonth TEXT NOT NULL
+          CHECK($columnCycleMonth GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]'
+            AND CAST(substr($columnCycleMonth, 6, 2) AS INTEGER) BETWEEN 1 AND 12),
+        $columnStatementDate TEXT NOT NULL,
+        $columnBillDueDate TEXT NOT NULL,
+        $columnTotalAmountDue REAL NOT NULL CHECK($columnTotalAmountDue >= 0),
+        $columnMinimumAmountDue REAL NOT NULL DEFAULT 0
+          CHECK($columnMinimumAmountDue >= 0 AND $columnMinimumAmountDue <= $columnTotalAmountDue),
+        $columnAmountPaid REAL NOT NULL DEFAULT 0 CHECK($columnAmountPaid >= 0),
+        $columnBillStatus TEXT NOT NULL
+          CHECK($columnBillStatus IN ('unpaid', 'partially_paid', 'paid')),
+        $columnBillUpdatedAt TEXT NOT NULL,
+        FOREIGN KEY ($columnBillCardId) REFERENCES $tableCards($columnCardId) ON DELETE CASCADE,
+        UNIQUE ($columnBillCardId, $columnCycleMonth)
+      )
+    ''');
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_bills_card_due
+      ON $tableBills($columnBillCardId, $columnBillDueDate)
+    ''');
+  }
+
   Future<void> _createUsersTable(Database db) async {
-    await db.execute('''
-      CREATE TABLE $tableUsers (
+    await db.execute('''      CREATE TABLE $tableUsers (
         $columnUserId TEXT PRIMARY KEY,
         $columnUserEmail TEXT NOT NULL UNIQUE,
         $columnUserFullName TEXT NOT NULL,
@@ -155,8 +177,7 @@ class DatabaseHelper {
         $columnUserIsEmailVerified INTEGER NOT NULL DEFAULT 1
       )
     ''');
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_users_email ON $tableUsers($columnUserEmail);
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_users_email ON $tableUsers($columnUserEmail)
     ''');
   }
 
@@ -185,71 +206,37 @@ class DatabaseHelper {
     }
   }
 
-  Future<void> _createBillsTable(DatabaseExecutor db) async {
-    await db.execute('''
-      CREATE TABLE $tableBills (
-        $columnBillId TEXT PRIMARY KEY NOT NULL,
-        $columnBillCardId TEXT NOT NULL,
-        $columnCycleMonth TEXT NOT NULL
-          CHECK($columnCycleMonth GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]'
-            AND CAST(substr($columnCycleMonth, 6, 2) AS INTEGER) BETWEEN 1 AND 12),
-        $columnStatementDate TEXT NOT NULL,
-        $columnBillDueDate TEXT NOT NULL,
-        $columnTotalAmountDue REAL NOT NULL CHECK($columnTotalAmountDue >= 0),
-        $columnMinimumAmountDue REAL NOT NULL DEFAULT 0
-          CHECK($columnMinimumAmountDue >= 0 AND $columnMinimumAmountDue <= $columnTotalAmountDue),
-        $columnAmountPaid REAL NOT NULL DEFAULT 0 CHECK($columnAmountPaid >= 0),
-        $columnBillStatus TEXT NOT NULL
-          CHECK($columnBillStatus IN ('unpaid', 'partially_paid', 'paid')),
-        $columnBillUpdatedAt TEXT NOT NULL,
-        FOREIGN KEY ($columnBillCardId) REFERENCES $tableCards($columnCardId) ON DELETE CASCADE,
-        UNIQUE ($columnBillCardId, $columnCycleMonth)
-      )
-    ''');
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_bills_card_due
-      ON $tableBills($columnBillCardId, $columnBillDueDate)
-    ''');
-  }
-
   Future<void> _createCustomerTables(Database db) async {
-    await db.execute('''
-      CREATE TABLE $tableCustomers (
+    await db.execute('''      CREATE TABLE $tableCustomers (
         $columnCustomerId TEXT PRIMARY KEY,
         $columnCustomerName TEXT NOT NULL,
         $columnCustomerPhone TEXT NOT NULL UNIQUE,
-        $columnCustomerAddress TEXT,
+        $columnCustomerAddress,
         $columnCustomerCreatedAt TEXT NOT NULL,
         $columnCustomerIsActive INTEGER NOT NULL DEFAULT 1
       )
     ''');
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_customers_phone ON $tableCustomers($columnCustomerPhone);
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_customers_phone ON $tableCustomers($columnCustomerPhone)
     ''');
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_customers_active ON $tableCustomers($columnCustomerIsActive);
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_customers_active ON $tableCustomers($columnCustomerIsActive)
     ''');
 
-    await db.execute('''
-      CREATE TABLE $tableCreditTransactions (
+    await db.execute('''      CREATE TABLE $tableCreditTransactions (
         $columnCreditTransactionId TEXT PRIMARY KEY,
         $columnCreditTransactionCustomerId TEXT NOT NULL,
         $columnCreditTransactionAmount INTEGER NOT NULL CHECK($columnCreditTransactionAmount > 0),
-        $columnCreditTransactionDescription TEXT,
+        $columnCreditTransactionDescription,
         $columnCreditTransactionDueDate TEXT NOT NULL,
         $columnCreditTransactionCreatedAt TEXT NOT NULL,
         FOREIGN KEY ($columnCreditTransactionCustomerId) REFERENCES $tableCustomers($columnCustomerId) ON DELETE CASCADE
       )
     ''');
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_credit_transactions_customer ON $tableCreditTransactions($columnCreditTransactionCustomerId);
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_credit_transactions_customer ON $tableCreditTransactions($columnCreditTransactionCustomerId)
     ''');
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_credit_transactions_due ON $tableCreditTransactions($columnCreditTransactionDueDate);
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_credit_transactions_due ON $tableCreditTransactions($columnCreditTransactionDueDate)
     ''');
 
-    await db.execute('''
-      CREATE TABLE $tablePayments (
+    await db.execute('''      CREATE TABLE $tablePayments (
         $columnPaymentId TEXT PRIMARY KEY,
         $columnPaymentCustomerId TEXT NOT NULL,
         $columnPaymentAmount INTEGER NOT NULL CHECK($columnPaymentAmount > 0),
@@ -259,15 +246,12 @@ class DatabaseHelper {
         FOREIGN KEY ($columnPaymentCustomerId) REFERENCES $tableCustomers($columnCustomerId) ON DELETE CASCADE
       )
     ''');
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_payments_customer ON $tablePayments($columnPaymentCustomerId);
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_payments_customer ON $tablePayments($columnPaymentCustomerId)
     ''');
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_payments_date ON $tablePayments($columnPaymentDate);
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_payments_date ON $tablePayments($columnPaymentDate)
     ''');
 
-    await db.execute('''
-      CREATE TABLE $tablePaymentAllocations (
+    await db.execute('''      CREATE TABLE $tablePaymentAllocations (
         $columnAllocationId TEXT PRIMARY KEY,
         $columnAllocationPaymentId TEXT NOT NULL,
         $columnAllocationTransactionId TEXT NOT NULL,
@@ -278,11 +262,9 @@ class DatabaseHelper {
         UNIQUE ($columnAllocationPaymentId, $columnAllocationTransactionId)
       )
     ''');
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_allocations_payment ON $tablePaymentAllocations($columnAllocationPaymentId);
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_allocations_payment ON $tablePaymentAllocations($columnAllocationPaymentId)
     ''');
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_allocations_transaction ON $tablePaymentAllocations($columnAllocationTransactionId);
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_allocations_transaction ON $tablePaymentAllocations($columnAllocationTransactionId)
     ''');
   }
 
@@ -297,8 +279,7 @@ class DatabaseHelper {
   }
 
   Future<void> _createRecoveryCodesTable(Database db) async {
-    await db.execute('''
-      CREATE TABLE $tableRecoveryCodes (
+    await db.execute('''      CREATE TABLE $tableRecoveryCodes (
         $columnRecoveryId TEXT PRIMARY KEY,
         $columnRecoveryEmail TEXT NOT NULL,
         $columnRecoveryCodeHash TEXT NOT NULL,
@@ -309,11 +290,9 @@ class DatabaseHelper {
         $columnRecoveryCreatedAt TEXT NOT NULL
       )
     ''');
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_recovery_email ON $tableRecoveryCodes($columnRecoveryEmail);
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_recovery_email ON $tableRecoveryCodes($columnRecoveryEmail)
     ''');
-    await db.execute('''
-      CREATE INDEX IF NOT EXISTS idx_recovery_expires ON $tableRecoveryCodes($columnRecoveryExpiresAt);
+    await db.execute('''      CREATE INDEX IF NOT EXISTS idx_recovery_expires ON $tableRecoveryCodes($columnRecoveryExpiresAt)
     ''');
   }
 
