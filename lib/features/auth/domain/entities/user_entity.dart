@@ -9,6 +9,14 @@ class UserEntity extends Equatable {
   final DateTime createdAt;
   final bool isEmailVerified;
 
+  /// Optional mobile number. Nullable — added by the v6 profile migration,
+  /// so pre-existing accounts simply have no phone yet.
+  final String? phone;
+
+  /// Optional profile photo stored as a resized base64 string.
+  /// Nullable for the same reason as [phone].
+  final String? photo;
+
   const UserEntity({
     required this.id,
     required this.email,
@@ -16,6 +24,8 @@ class UserEntity extends Equatable {
     required this.passwordHash,
     required this.createdAt,
     this.isEmailVerified = false,
+    this.phone,
+    this.photo,
   });
 
   @override
@@ -26,5 +36,7 @@ class UserEntity extends Equatable {
     passwordHash,
     createdAt,
     isEmailVerified,
+    phone,
+    photo,
   ];
 }

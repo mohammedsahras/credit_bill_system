@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/theme/widgets/credit_bill_animated_entrance.dart';
 import '../../../../core/theme/widgets/credit_bill_background.dart';
 import '../../../../core/theme/widgets/credit_bill_logo.dart';
 import '../../../../core/theme/widgets/credit_bill_primary_button.dart';
@@ -91,21 +92,32 @@ Future<void> _onSignIn() async {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 20),
-                    const CreditBillLogo(size: 40),
+                    const CreditBillAnimatedEntrance(
+                      index: 0,
+                      child: CreditBillLogo(size: 40),
+                    ),
                     const SizedBox(height: 32),
-                    Text(
-                      'Welcome Back',
-                      style: CreditBillTextTheme.screenHeading,
-                      textAlign: TextAlign.center,
+                    CreditBillAnimatedEntrance(
+                      index: 1,
+                      child: Text(
+                        'Welcome Back',
+                        style: CreditBillTextTheme.screenHeading,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      'Sign in to your account',
-                      style: CreditBillTextTheme.screenSubheading,
-                      textAlign: TextAlign.center,
+                    CreditBillAnimatedEntrance(
+                      index: 2,
+                      child: Text(
+                        'Sign in to your account',
+                        style: CreditBillTextTheme.screenSubheading,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                     const SizedBox(height: 40),
-                    Form(
+                    CreditBillAnimatedEntrance(
+                      index: 3,
+                      child: Form(
                       key: _formKey,
                       child: Column(
                         children: [
@@ -176,6 +188,7 @@ Future<void> _onSignIn() async {
                           const SizedBox(height: 30),
                         ],
                       ),
+                    ),
                     ),
                   ],
                 ),

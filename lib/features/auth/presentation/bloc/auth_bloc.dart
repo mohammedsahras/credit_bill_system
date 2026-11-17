@@ -16,6 +16,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final ResetPasswordUseCase resetPasswordUseCase;
   final SeedDefaultUserUseCase seedDefaultUserUseCase;
   final SeedDevAccountUseCase seedDevAccountUseCase;
+  final UpdateProfileUseCase updateProfileUseCase;
   final RecoveryCodeLocalDataSource recoveryCodeDataSource;
 
   AuthBloc({
@@ -24,12 +25,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.resetPasswordUseCase,
     required this.seedDefaultUserUseCase,
     required this.seedDevAccountUseCase,
+    required this.updateProfileUseCase,
     required this.recoveryCodeDataSource,
   }) : super(AuthInitialState()) {
     on<CheckAuthStatusEvent>(_onCheckAuthStatus);
     on<LoginRequestedEvent>(_onLoginRequested);
     on<ForgotPasswordRequestedEvent>(_onForgotPasswordRequested);
     on<ResetPasswordRequestedEvent>(_onResetPasswordRequested);
+    on<UpdateProfileEvent>(_onUpdateProfile);
     on<LogoutRequestedEvent>(_onLogoutRequested);
   }
 
@@ -143,6 +146,79 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       emit(AuthErrorState('Password reset failed: $e'));
     }
+  }
+
+  Future<void> _onUpdateProfile(
+    UpdateProfileEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    // Note: no AuthLoadingState here. The edit screen manages its own
+    // saving indicator, and a transient non-authenticated state would make
+    // the app root (AuthWrapper) drop back to the welcome screen.
+    try {
+      final result = await updateProfileUseCase.execute(
+        currentEmail: event.currentEmail,
+        fullName: event.fullName,
+        email: event.email,
+        phone: event.phone,
+        photo: event.photo,
+        currentPassword: event.currentPassword,
+      );
+      if (result.isLeft) {
+        final identity = _identityAfterFailure(event);
+        emit(
+          AuthProfileUpdateFailedState(
+            email: identity.email,
+            fullName: identity.fullName,
+            message: result.leftOrNull!.message,
+            failedAt: DateTime.now(),
+          ),
+        );
+        return;
+      }
+
+      final user = result.rightOrNull!;
+      // Session save may fail on Web; it must never block the update.
+      try {
+        await SessionManager.saveSession(
+          email: user.email,
+          fullName: user.fullName,
+        );
+      } catch (e) {
+        debugPrint('Session save failed (non-blocking): $e');
+      }
+      emit(
+        AuthProfileUpdatedState(
+          email: user.email,
+          fullName: user.fullName,
+          message: 'Your profile has been updated.',
+          updatedAt: DateTime.now(),
+        ),
+      );
+    } catch (e) {
+      final identity = _identityAfterFailure(event);
+      emit(
+        AuthProfileUpdateFailedState(
+          email: identity.email,
+          fullName: identity.fullName,
+          message: 'Profile update failed: $e',
+          failedAt: DateTime.now(),
+        ),
+      );
+    }
+  }
+
+  /// Identity to report on a failed update: the last confirmed session
+  /// values (a failed save never changes them), falling back to the values
+  /// the event was built from when nothing has been confirmed yet.
+  ({String email, String fullName}) _identityAfterFailure(
+    UpdateProfileEvent event,
+  ) {
+    final current = state;
+    if (current is AuthAuthenticatedState) {
+      return (email: current.email, fullName: current.fullName);
+    }
+    return (email: event.currentEmail, fullName: event.fullName);
   }
 
   Future<void> _onLogoutRequested(

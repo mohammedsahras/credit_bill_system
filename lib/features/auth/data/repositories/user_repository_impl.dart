@@ -94,6 +94,37 @@ class UserRepositoryImpl implements UserRepository {
       return DatabaseFailure('Failed to reset password: $e').asLeft();
     }
   }
+
+  @override
+  Future<Either<Failure, UserEntity>> updateUserProfile({
+    required String currentEmail,
+    required String fullName,
+    required String email,
+    String? phone,
+    String? photo,
+  }) async {
+    try {
+      final updated = await localDataSource.updateProfile(
+        currentEmail: currentEmail,
+        fullName: fullName,
+        email: email,
+        phone: phone,
+        photo: photo,
+      );
+      if (updated == null) {
+        return const NotFoundFailure(
+          'No account found with this email.',
+        ).asLeft();
+      }
+      return Right(updated);
+    } on DuplicateEmailException {
+      return const ConflictFailure(
+        'That email address is already in use by another account.',
+      ).asLeft();
+    } catch (e) {
+      return DatabaseFailure('Failed to update profile: $e').asLeft();
+    }
+  }
 }
 
 extension FailureLeftExt on Failure {

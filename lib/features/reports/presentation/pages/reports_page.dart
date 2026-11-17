@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:credit_bill_system/core/theme/credit_bill_theme.dart';
+import 'package:credit_bill_system/core/theme/widgets/credit_bill_animated_entrance.dart';
 import 'package:credit_bill_system/features/reports/presentation/bloc/reports_bloc.dart';
 
 class ReportsPage extends StatefulWidget {
@@ -46,16 +47,23 @@ class _ReportsPageState extends State<ReportsPage> {
             );
           }
           final s = state as ReportsLoadedState;
+          final items = <(String, String)>[
+            ('Total Customers', s.totalCustomers.toString()),
+            ('Total Credit', _fmt(s.totalCreditMinor)),
+            ('Total Payments', _fmt(s.totalPaidMinor)),
+            ('Outstanding Balance', _fmt(s.outstandingMinor)),
+            ('Total Transactions', s.totalTransactions.toString()),
+          ];
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _card('Total Customers', s.totalCustomers.toString()),
-                _card('Total Credit', _fmt(s.totalCreditMinor)),
-                _card('Total Payments', _fmt(s.totalPaidMinor)),
-                _card('Outstanding Balance', _fmt(s.outstandingMinor)),
-                _card('Total Transactions', s.totalTransactions.toString()),
+                for (var i = 0; i < items.length; i++)
+                  CreditBillAnimatedEntrance(
+                    index: i,
+                    child: _card(items[i].$1, items[i].$2),
+                  ),
               ],
             ),
           );

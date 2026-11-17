@@ -4,7 +4,7 @@ import '../credit_bill_colors.dart';
 import '../credit_bill_theme.dart';
 
 /// Premium pill-shaped primary button used across all authentication screens.
-class CreditBillPrimaryButton extends StatelessWidget {
+class CreditBillPrimaryButton extends StatefulWidget {
   final String text;
   final VoidCallback? onPressed;
   final bool isLoading;
@@ -21,13 +21,23 @@ class CreditBillPrimaryButton extends StatelessWidget {
   });
 
   @override
+  State<CreditBillPrimaryButton> createState() =>
+      _CreditBillPrimaryButtonState();
+}
+
+class _CreditBillPrimaryButtonState extends State<CreditBillPrimaryButton> {
+  bool _pressed = false;
+  bool _hovering = false;
+
+  @override
   Widget build(BuildContext context) {
-    final button = Container(
-      width: isFullWidth ? double.infinity : null,
+    final button = AnimatedContainer(
+      duration: const Duration(milliseconds: 120),
+      width: widget.isFullWidth ? double.infinity : null,
       height: 56,
       decoration: BoxDecoration(
-        gradient: color != null
-            ? LinearGradient(colors: [color!, color!])
+        gradient: widget.color != null
+            ? LinearGradient(colors: [widget.color!, widget.color!])
             : const LinearGradient(
                 colors: [
                   CreditBillColors.primaryBlue,
@@ -38,14 +48,16 @@ class CreditBillPrimaryButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: CreditBillColors.primaryBlue.withValues(alpha: 0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            color: CreditBillColors.primaryBlue.withValues(
+              alpha: _hovering ? 0.45 : 0.35,
+            ),
+            blurRadius: _hovering ? 22 : 16,
+            offset: Offset(0, _hovering ? 10 : 8),
           ),
         ],
       ),
       alignment: Alignment.center,
-      child: isLoading
+      child: widget.isLoading
           ? SizedBox(
               width: 22,
               height: 22,
@@ -55,21 +67,32 @@ class CreditBillPrimaryButton extends StatelessWidget {
               ),
             )
           : Text(
-              text,
+              widget.text,
               style: CreditBillTextTheme.buttonText.copyWith(
-                color: color != null ? CreditBillColors.white : null,
+                color: widget.color != null ? CreditBillColors.white : null,
               ),
               textAlign: TextAlign.center,
             ),
     );
 
-    if (onPressed == null || isLoading) {
+    if (widget.onPressed == null || widget.isLoading) {
       return button;
     }
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(28),
-      child: button,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: InkWell(
+          onTap: widget.onPressed,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTapCancel: () => setState(() => _pressed = false),
+          borderRadius: BorderRadius.circular(28),
+          child: button,
+        ),
+      ),
     );
   }
 }

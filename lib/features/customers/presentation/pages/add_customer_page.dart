@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/theme/widgets/credit_bill_animated_entrance.dart';
 import '../../../../core/theme/widgets/credit_bill_background.dart';
 import '../../../../core/theme/widgets/credit_bill_primary_button.dart';
 import '../../../../core/theme/widgets/credit_bill_text_field.dart';
@@ -139,9 +140,12 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                             suffixIcon: Icons.location_on_outlined,
                           ),
                           const SizedBox(height: 26),
-                          CreditBillPrimaryButton(
-                            text: 'Save Customer',
-                            onPressed: _onSave,
+                          CreditBillAnimatedEntrance(
+                            index: 0,
+                            child: CreditBillPrimaryButton(
+                              text: 'Save Customer',
+                              onPressed: _onSave,
+                            ),
                           ),
                           const SizedBox(height: 24),
                         ],

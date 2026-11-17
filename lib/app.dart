@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/database/database_helper.dart';
+import 'core/theme/theme_controller.dart';
+import 'core/theme/widgets/credit_bill_page_route.dart';
 import 'app/presentation/wallet_composition_page.dart';
 import 'features/auth/data/datasources/user_local_data_source.dart';
 import 'features/auth/data/repositories/user_repository_impl.dart';
@@ -23,6 +25,13 @@ import 'features/customers/presentation/pages/customer_detail_page.dart';
 import 'features/customers/presentation/pages/customer_list_page.dart';
 import 'features/reports/presentation/pages/reports_page.dart';
 import 'features/reports/presentation/bloc/reports_bloc.dart';
+import 'features/settings/presentation/pages/about_page.dart';
+import 'features/settings/presentation/pages/edit_profile_page.dart';
+import 'features/settings/presentation/pages/help_support_page.dart';
+import 'features/settings/presentation/pages/security_privacy_page.dart';
+import 'features/settings/presentation/pages/settings_page.dart';
+import 'features/settings/presentation/pages/storage_data_page.dart';
+import 'features/settings/presentation/pages/theme_settings_page.dart';
 import 'features/customers/presentation/pages/dashboard_page.dart';
 import 'features/customers/presentation/pages/edit_customer_page.dart';
 import 'features/customers/presentation/pages/record_payment_page.dart';
@@ -51,11 +60,21 @@ class CreditBillApp extends StatelessWidget {
   final DatabaseHelper? databaseHelper;
   final Widget? home;
 
-  const CreditBillApp({super.key, this.databaseHelper, this.home});
+  /// App-wide theme-mode control. `main()` loads the persisted value
+  /// before the first frame; tests may inject one backed by a fake store.
+  final ThemeController? themeController;
+
+  const CreditBillApp({
+    super.key,
+    this.databaseHelper,
+    this.home,
+    this.themeController,
+  });
 
   @override
   Widget build(BuildContext context) {
     final dbHelper = databaseHelper ?? DatabaseHelper();
+    final themeController = this.themeController ?? ThemeController();
     final cardLocalDataSource = CardLocalDataSourceImpl(
       databaseHelper: dbHelper,
     );
@@ -134,6 +153,13 @@ class CreditBillApp extends StatelessWidget {
     final seedDevAccountUseCase = SeedDevAccountUseCase(
       repository: userRepository,
     );
+    final getProfileUseCase = GetProfileUseCase(repository: userRepository);
+    final updateProfileUseCase = UpdateProfileUseCase(
+      repository: userRepository,
+    );
+    final changePasswordUseCase = ChangePasswordUseCase(
+      repository: userRepository,
+    );
 
     return MultiBlocProvider(
       providers: [
@@ -159,6 +185,7 @@ class CreditBillApp extends StatelessWidget {
             resetPasswordUseCase: resetPasswordUseCase,
             seedDefaultUserUseCase: seedDefaultUserUseCase,
             seedDevAccountUseCase: seedDevAccountUseCase,
+            updateProfileUseCase: updateProfileUseCase,
             recoveryCodeDataSource: RecoveryCodeLocalDataSourceImpl(
               databaseHelper: DatabaseHelper(),
             ),
@@ -175,7 +202,9 @@ class CreditBillApp extends StatelessWidget {
         ),
         BlocProvider<CustomerDetailBloc>(
           create: (_) => CustomerDetailBloc(
-            getCustomerByIdUseCase: GetCustomerByIdUseCase(repository: customerRepository),
+            getCustomerByIdUseCase: GetCustomerByIdUseCase(
+              repository: customerRepository,
+            ),
             creditTransactionRepository: creditTransactionRepository,
             paymentRepository: paymentRepository,
           ),
@@ -184,99 +213,139 @@ class CreditBillApp extends StatelessWidget {
           create: (_) => ReportsBloc(databaseHelper: dbHelper),
         ),
       ],
-      child: MaterialApp(
-        title: 'Credit Bill System',
-        debugShowCheckedModeBanner: false,
-        themeMode: ThemeMode.system,
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF087DB5),
-            brightness: Brightness.light,
-          ),
-        ),
-        darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF087DB5),
-            brightness: Brightness.dark,
-          ),
-        ),
-        home: home ?? const WalletCompositionPage(),
-        onGenerateRoute: (settings) {
-          switch (settings.name) {
-            case '/welcome':
-              return MaterialPageRoute(builder: (_) => const WelcomePage());
-            case '/login':
-              return MaterialPageRoute(builder: (_) => const LoginPage());
-            case '/forgot-password':
-              return MaterialPageRoute(
-                builder: (_) => const ForgotPasswordPage(),
-              );
-            case '/verify-recovery-code':
-              final email = settings.arguments as String? ?? '';
-              return MaterialPageRoute(
-                builder: (_) => VerifyRecoveryCodePage(email: email),
-              );
-            case '/create-new-password':
-              final args = settings.arguments;
-              String email = 'demo@creditbill.com';
-              if (args is Map) {
-                email = args['email'] as String? ?? email;
-              } else if (args is String) {
-                email = args;
+      child: ThemeScope(
+        controller: themeController,
+        child: ListenableBuilder(
+          listenable: themeController,
+          builder: (context, _) => MaterialApp(
+            title: 'Credit Bill System',
+            debugShowCheckedModeBanner: false,
+            themeMode: themeController.mode,
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF087DB5),
+                brightness: Brightness.light,
+              ),
+            ),
+            darkTheme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF087DB5),
+                brightness: Brightness.dark,
+              ),
+            ),
+            home: home ?? const WalletCompositionPage(),
+            onGenerateRoute: (settings) {
+              switch (settings.name) {
+                case '/welcome':
+                  return MaterialPageRoute(builder: (_) => const WelcomePage());
+                case '/login':
+                  return MaterialPageRoute(builder: (_) => const LoginPage());
+                case '/forgot-password':
+                  return MaterialPageRoute(
+                    builder: (_) => const ForgotPasswordPage(),
+                  );
+                case '/verify-recovery-code':
+                  final email = settings.arguments as String? ?? '';
+                  return MaterialPageRoute(
+                    builder: (_) => VerifyRecoveryCodePage(email: email),
+                  );
+                case '/create-new-password':
+                  final args = settings.arguments;
+                  String email = 'demo@creditbill.com';
+                  if (args is Map) {
+                    email = args['email'] as String? ?? email;
+                  } else if (args is String) {
+                    email = args;
+                  }
+                  return MaterialPageRoute(
+                    builder: (_) => CreateNewPasswordPage(email: email),
+                  );
+                case '/password-changed':
+                  return MaterialPageRoute(
+                    builder: (_) => const PasswordChangedPage(),
+                  );
+                case '/home':
+                  return MaterialPageRoute(
+                    builder: (_) => const WalletCompositionPage(),
+                  );
+                case '/customers':
+                  return CreditBillPageRoute(
+                    builder: (_) => const CustomerListPage(),
+                  );
+                case '/add-customer':
+                  return CreditBillPageRoute(
+                    builder: (_) => const AddCustomerPage(),
+                  );
+                case '/customer-detail':
+                  final customer = settings.arguments as CustomerEntity?;
+                  if (customer == null) return null;
+                  return CreditBillPageRoute(
+                    builder: (_) => CustomerDetailPage(customer: customer),
+                  );
+                case '/edit-customer':
+                  final customer = settings.arguments as CustomerEntity?;
+                  if (customer == null) return null;
+                  return CreditBillPageRoute(
+                    builder: (_) => EditCustomerPage(customer: customer),
+                  );
+                case '/add-credit-bill':
+                  final customer = settings.arguments as CustomerEntity?;
+                  return CreditBillPageRoute(
+                    builder: (_) => AddCreditBillPage(customer: customer),
+                  );
+                case '/record-payment':
+                  final customer = settings.arguments as CustomerEntity?;
+                  return CreditBillPageRoute(
+                    builder: (_) => RecordPaymentPage(
+                      customer: customer,
+                      paymentRepository: paymentRepository,
+                      creditTransactionRepository: creditTransactionRepository,
+                    ),
+                  );
+                case '/dashboard':
+                  return CreditBillPageRoute(
+                    builder: (_) => const DashboardPage(),
+                  );
+                case '/reports':
+                  return CreditBillPageRoute(builder: (_) => const ReportsPage());
+                case '/settings':
+                  return CreditBillPageRoute(
+                    builder: (_) =>
+                        SettingsPage(getProfileUseCase: getProfileUseCase),
+                  );
+                case '/edit-profile':
+                  return CreditBillPageRoute(
+                    builder: (_) =>
+                        EditProfilePage(getProfileUseCase: getProfileUseCase),
+                  );
+                case '/settings/theme':
+                  return CreditBillPageRoute(
+                    builder: (_) => const ThemeSettingsPage(),
+                  );
+                case '/settings/security':
+                  return CreditBillPageRoute(
+                    builder: (_) => SecurityPrivacyPage(
+                      changePasswordUseCase: changePasswordUseCase,
+                    ),
+                  );
+                case '/settings/storage':
+                  return CreditBillPageRoute(
+                    builder: (_) => StorageDataPage(databaseHelper: dbHelper),
+                  );
+                case '/settings/help':
+                  return CreditBillPageRoute(
+                    builder: (_) => const HelpSupportPage(),
+                  );
+                case '/settings/about':
+                  return CreditBillPageRoute(builder: (_) => const AboutPage());
+                default:
+                  return null;
               }
-              return MaterialPageRoute(
-                builder: (_) => CreateNewPasswordPage(email: email),
-              );
-            case '/password-changed':
-              return MaterialPageRoute(
-                builder: (_) => const PasswordChangedPage(),
-              );
-            case '/home':
-              return MaterialPageRoute(
-                builder: (_) => const WalletCompositionPage(),
-              );
-            case '/customers':
-              return MaterialPageRoute(
-                builder: (_) => const CustomerListPage(),
-              );
-            case '/add-customer':
-              return MaterialPageRoute(builder: (_) => const AddCustomerPage());
-            case '/customer-detail':
-              final customer = settings.arguments as CustomerEntity?;
-              if (customer == null) return null;
-              return MaterialPageRoute(
-                builder: (_) => CustomerDetailPage(customer: customer),
-              );
-            case '/edit-customer':
-              final customer = settings.arguments as CustomerEntity?;
-              if (customer == null) return null;
-              return MaterialPageRoute(
-                builder: (_) => EditCustomerPage(customer: customer),
-              );
-            case '/add-credit-bill':
-              final customer = settings.arguments as CustomerEntity?;
-              return MaterialPageRoute(
-                builder: (_) => AddCreditBillPage(customer: customer),
-              );
-            case '/record-payment':
-              final customer = settings.arguments as CustomerEntity?;
-              return MaterialPageRoute(
-                builder: (_) => RecordPaymentPage(
-                  customer: customer,
-                  paymentRepository: paymentRepository,
-                  creditTransactionRepository: creditTransactionRepository,
-                ),
-              );
-            case '/dashboard':
-              return MaterialPageRoute(builder: (_) => const DashboardPage());
-            case '/reports':
-              return MaterialPageRoute(builder: (_) => const ReportsPage());
-            default:
-              return null;
-          }
-        },
+            },
+          ),
+        ),
       ),
     );
   }

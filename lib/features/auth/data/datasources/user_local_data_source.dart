@@ -4,6 +4,18 @@ import '../../../../core/database/database_helper.dart';
 import '../../../../core/utils/password_hasher.dart';
 import '../models/user_model.dart';
 
+/// Thrown inside [UserLocalDataSourceImpl.updateProfile] when the requested
+/// email is already owned by another account. The surrounding transaction is
+/// rolled back, so no partial write can happen.
+class DuplicateEmailException implements Exception {
+  final String email;
+
+  const DuplicateEmailException(this.email);
+
+  @override
+  String toString() => 'DuplicateEmailException($email)';
+}
+
 abstract class UserLocalDataSource {
   /// Returns true when at least one user is registered.
   Future<bool> hasRegisteredUser();
@@ -20,6 +32,20 @@ abstract class UserLocalDataSource {
   /// Updates a user's password hash.
   Future<int> updatePassword(String email, String newPasswordHash);
 
+  /// Updates the profile fields of the user identified by [currentEmail].
+  ///
+  /// Returns the refreshed model, or null when no matching row exists.
+  /// Throws [DuplicateEmailException] when [email] is already taken by a
+  /// different account. The uniqueness check and the update run inside one
+  /// transaction so a rejected save can never partially modify the row.
+  Future<UserModel?> updateProfile({
+    required String currentEmail,
+    required String fullName,
+    required String email,
+    String? phone,
+    String? photo,
+  });
+
   /// Seeds a default demo user when none exist.
   Future<bool> seedDefaultUser();
 }
@@ -33,6 +59,9 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
 
   static const String _columnId = 'id';
   static const String _columnEmail = 'email';
+  static const String _columnFullName = 'full_name';
+  static const String _columnPhone = 'phone';
+  static const String _columnPhoto = 'photo';
   static const String _columnPasswordHash = 'password_hash';
 
   @override
@@ -88,7 +117,7 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
       }
     } else {
       // Legacy FNV-1a hash
-      if (user.passwordHash == _legacyHash(plainPassword)) {
+      if (user.passwordHash == PasswordHasher.legacyHash(plainPassword)) {
         return user;
       }
     }
@@ -104,6 +133,58 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
       where: 'LOWER($_columnEmail) = ?',
       whereArgs: [email.toLowerCase().trim()],
     );
+  }
+
+  @override
+  Future<UserModel?> updateProfile({
+    required String currentEmail,
+    required String fullName,
+    required String email,
+    String? phone,
+    String? photo,
+  }) async {
+    final db = await databaseHelper.database;
+    final currentKey = currentEmail.toLowerCase().trim();
+    final newKey = email.toLowerCase().trim();
+
+    return db.transaction<UserModel?>((txn) async {
+      // Uniqueness check inside the same transaction as the write, so a
+      // concurrent registration can never produce a partial profile update.
+      if (newKey != currentKey) {
+        final existing = await txn.query(
+          tableUsers,
+          columns: [_columnId],
+          where: 'LOWER($_columnEmail) = ?',
+          whereArgs: [newKey],
+          limit: 1,
+        );
+        if (existing.isNotEmpty) {
+          throw DuplicateEmailException(email.trim());
+        }
+      }
+
+      final updated = await txn.update(
+        tableUsers,
+        {
+          _columnFullName: fullName.trim(),
+          _columnEmail: email.trim(),
+          _columnPhone: phone,
+          _columnPhoto: photo,
+        },
+        where: 'LOWER($_columnEmail) = ?',
+        whereArgs: [currentKey],
+      );
+      if (updated == 0) return null;
+
+      final rows = await txn.query(
+        tableUsers,
+        where: 'LOWER($_columnEmail) = ?',
+        whereArgs: [newKey],
+        limit: 1,
+      );
+      if (rows.isEmpty) return null;
+      return UserModel.fromMap(rows.first);
+    });
   }
 
   @override
@@ -123,14 +204,5 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
       ),
     ); //fnv1a:1773485738
     return true;
-  }
-
-  static String _legacyHash(String password) {
-    var hash = 0x811c9dc5;
-    for (final unit in password.codeUnits) {
-      hash ^= unit;
-      hash = (hash * 0x01000193) & 0xFFFFFFFF;
-    }
-    return 'fnv1a:$hash';
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/theme/widgets/credit_bill_animated_entrance.dart';
 import '../../../../core/theme/widgets/credit_bill_background.dart';
 import '../../../../core/theme/widgets/credit_bill_primary_button.dart';
 import '../../../../core/theme/widgets/credit_bill_text_field.dart';
@@ -171,9 +172,11 @@ class _RecordPaymentPageState extends State<RecordPaymentPage> {
                     ),
                   ],
                   const SizedBox(height: 24),
-                  Form(
-                    key: _formKey,
-                    child: Column(
+                  CreditBillAnimatedEntrance(
+                    index: 0,
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
                       children: [
                         CreditBillTextField(
                           label: 'Payment Amount (Rs.)',
@@ -255,6 +258,7 @@ class _RecordPaymentPageState extends State<RecordPaymentPage> {
                         const SizedBox(height: 24),
                       ],
                     ),
+                  ),
                   ),
                 ],
               ),

@@ -9,6 +9,8 @@ class UserModel extends UserEntity {
     required super.passwordHash,
     required super.createdAt,
     super.isEmailVerified = false,
+    super.phone,
+    super.photo,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
@@ -19,6 +21,8 @@ class UserModel extends UserEntity {
       passwordHash: map['password_hash'] as String,
       createdAt: DateTime.parse(map['created_at'] as String),
       isEmailVerified: (map['is_email_verified'] as int? ?? 0) == 1,
+      phone: map['phone'] as String?,
+      photo: map['photo'] as String?,
     );
   }
 
@@ -30,6 +34,8 @@ class UserModel extends UserEntity {
       'password_hash': passwordHash,
       'created_at': createdAt.toIso8601String(),
       'is_email_verified': isEmailVerified ? 1 : 0,
+      'phone': phone,
+      'photo': photo,
     };
   }
 
@@ -41,6 +47,8 @@ class UserModel extends UserEntity {
       passwordHash: entity.passwordHash,
       createdAt: entity.createdAt,
       isEmailVerified: entity.isEmailVerified,
+      phone: entity.phone,
+      photo: entity.photo,
     );
   }
 }

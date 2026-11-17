@@ -21,4 +21,17 @@ abstract class UserRepository {
     String email,
     String newPassword,
   );
+
+  /// Updates the profile fields (name, email, phone, photo) of the user
+  /// identified by [currentEmail] and returns the refreshed entity.
+  ///
+  /// Returns a [ConflictFailure] when the new email is already taken, and a
+  /// [NotFoundFailure] when no account matches [currentEmail].
+  Future<Either<Failure, UserEntity>> updateUserProfile({
+    required String currentEmail,
+    required String fullName,
+    required String email,
+    String? phone,
+    String? photo,
+  });
 }

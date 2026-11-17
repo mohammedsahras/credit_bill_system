@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
   static const String _databaseName = 'credit_bill_system.db';
-  static const int _databaseVersion = 5;
+  static const int _databaseVersion = 6;
 
   static const String tableCards = 'cards';
   static const String tableBills = 'bills';
@@ -14,6 +14,10 @@ class DatabaseHelper {
   static const String columnUserPasswordHash = 'password_hash';
   static const String columnUserCreatedAt = 'created_at';
   static const String columnUserIsEmailVerified = 'is_email_verified';
+
+  // --- Profile (v6, additive-only) ---
+  static const String columnUserPhone = 'phone';
+  static const String columnUserPhoto = 'photo';
 
   // --- Customer tables (v4) ---
   static const String tableCustomers = 'customers';
@@ -100,9 +104,16 @@ class DatabaseHelper {
     return _database!;
   }
 
-  Future<Database> _initDatabase() async {
+  /// Absolute path of the app database file — used by Storage & Data to
+  /// report the real on-disk size. Callers must guard `kIsWeb` first:
+  /// there is no file system on the web.
+  static Future<String> get databaseFilePath async {
     final dbPath = await getDatabasesPath();
-    final path = p.join(dbPath, _databaseName);
+    return p.join(dbPath, _databaseName);
+  }
+
+  Future<Database> _initDatabase() async {
+    final path = await databaseFilePath;
 
     return await openDatabase(
       path,
@@ -174,7 +185,9 @@ class DatabaseHelper {
         $columnUserFullName TEXT NOT NULL,
         $columnUserPasswordHash TEXT NOT NULL,
         $columnUserCreatedAt TEXT NOT NULL,
-        $columnUserIsEmailVerified INTEGER NOT NULL DEFAULT 1
+        $columnUserIsEmailVerified INTEGER NOT NULL DEFAULT 1,
+        $columnUserPhone TEXT,
+        $columnUserPhoto TEXT
       )
     ''');
     await db.execute('''      CREATE INDEX IF NOT EXISTS idx_users_email ON $tableUsers($columnUserEmail)
@@ -203,6 +216,35 @@ class DatabaseHelper {
     }
     if (oldVersion < 5) {
       await _migrateToRecoveryCodesTable(db);
+    }
+    if (oldVersion < 6) {
+      await _addUserProfileColumns(db);
+    }
+  }
+
+  /// v6 migration: adds the nullable `phone` / `photo` profile columns.
+  ///
+  /// Guarded by `PRAGMA table_info` so it is strictly additive — it never
+  /// drops, rewrites or recreates anything, and a database without a `users`
+  /// table (or that already has the columns) is left untouched.
+  Future<void> _addUserProfileColumns(Database db) async {
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+      [tableUsers],
+    );
+    if (tables.isEmpty) return;
+
+    final columns = await db.rawQuery('PRAGMA table_info($tableUsers);');
+    final existing = columns.map((row) => row['name'] as String?).toSet();
+    if (!existing.contains(columnUserPhone)) {
+      await db.execute(
+        'ALTER TABLE $tableUsers ADD COLUMN $columnUserPhone TEXT',
+      );
+    }
+    if (!existing.contains(columnUserPhoto)) {
+      await db.execute(
+        'ALTER TABLE $tableUsers ADD COLUMN $columnUserPhoto TEXT',
+      );
     }
   }
 

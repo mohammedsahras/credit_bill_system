@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/theme/widgets/credit_bill_animated_entrance.dart';
 import '../../../../core/theme/widgets/credit_bill_background.dart';
 import '../../../../core/theme/widgets/credit_bill_primary_button.dart';
 import '../../../../core/theme/widgets/credit_bill_text_field.dart';
@@ -84,7 +85,10 @@ class _CustomerListPageState extends State<CustomerListPage> {
                       itemCount: state.customers.length,
                       itemBuilder: (context, index) {
                         final customer = state.customers[index];
-                        return _CustomerTile(customer: customer);
+                        return CreditBillAnimatedEntrance(
+                          index: index < 8 ? index : 0,
+                          child: _CustomerTile(customer: customer),
+                        );
                       },
                     );
                   }

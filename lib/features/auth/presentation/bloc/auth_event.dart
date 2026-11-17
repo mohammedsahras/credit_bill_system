@@ -42,3 +42,36 @@ class ResetPasswordRequestedEvent extends AuthEvent {
 }
 
 class LogoutRequestedEvent extends AuthEvent {}
+
+class UpdateProfileEvent extends AuthEvent {
+  /// Email the profile row is currently stored under.
+  final String currentEmail;
+
+  final String fullName;
+  final String email;
+  final String? phone;
+  final String? photo;
+
+  /// Required only when [email] differs from [currentEmail]; verified
+  /// against the stored password hash before anything is written.
+  final String? currentPassword;
+
+  const UpdateProfileEvent({
+    required this.currentEmail,
+    required this.fullName,
+    required this.email,
+    this.phone,
+    this.photo,
+    this.currentPassword,
+  });
+
+  @override
+  List<Object?> get props => [
+    currentEmail,
+    fullName,
+    email,
+    phone,
+    photo,
+    currentPassword,
+  ];
+}

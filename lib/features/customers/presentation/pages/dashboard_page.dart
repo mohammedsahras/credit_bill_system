@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/theme/widgets/credit_bill_animated_entrance.dart';
 import '../../../../core/theme/widgets/credit_bill_background.dart';
 import '../../../../core/theme/credit_bill_theme.dart';
 import '../bloc/customer_bloc.dart';
@@ -28,6 +29,14 @@ class _DashboardPageState extends State<DashboardPage> {
         backgroundColor: CreditBillColors.primaryBlue,
         foregroundColor: CreditBillColors.white,
         actions: [
+          IconButton(
+            key: const Key('dashboardSettingsAction'),
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () {
+              Navigator.of(context).pushNamed('/settings');
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
@@ -60,29 +69,49 @@ class _DashboardPageState extends State<DashboardPage> {
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    _QuickActionCard(
-                      icon: Icons.person_add,
-                      label: 'Add Customer',
-                      onTap: () =>
-                          Navigator.of(context).pushNamed('/add-customer'),
+                    CreditBillAnimatedEntrance(
+                      index: 0,
+                      child: _QuickActionCard(
+                        icon: Icons.person_add,
+                        label: 'Add Customer',
+                        onTap: () =>
+                            Navigator.of(context).pushNamed('/add-customer'),
+                      ),
                     ),
-                    _QuickActionCard(
-                      icon: Icons.receipt_long,
-                      label: 'Add Credit Bill',
-                      onTap: () =>
-                          Navigator.of(context).pushNamed('/add-credit-bill'),
+                    CreditBillAnimatedEntrance(
+                      index: 1,
+                      child: _QuickActionCard(
+                        icon: Icons.receipt_long,
+                        label: 'Add Credit Bill',
+                        onTap: () =>
+                            Navigator.of(context).pushNamed('/add-credit-bill'),
+                      ),
                     ),
-                    _QuickActionCard(
-                      icon: Icons.payment,
-                      label: 'Record Payment',
-                      onTap: () =>
-                          Navigator.of(context).pushNamed('/record-payment'),
+                    CreditBillAnimatedEntrance(
+                      index: 2,
+                      child: _QuickActionCard(
+                        icon: Icons.payment,
+                        label: 'Record Payment',
+                        onTap: () =>
+                            Navigator.of(context).pushNamed('/record-payment'),
+                      ),
                     ),
-                    _QuickActionCard(
-                      icon: Icons.people,
-                      label: 'View Customers',
-                      onTap: () =>
-                          Navigator.of(context).pushNamed('/customers'),
+                    CreditBillAnimatedEntrance(
+                      index: 3,
+                      child: _QuickActionCard(
+                        icon: Icons.people,
+                        label: 'View Customers',
+                        onTap: () =>
+                            Navigator.of(context).pushNamed('/customers'),
+                      ),
+                    ),
+                    CreditBillAnimatedEntrance(
+                      index: 4,
+                      child: _QuickActionCard(
+                        icon: Icons.settings,
+                        label: 'Settings',
+                        onTap: () => Navigator.of(context).pushNamed('/settings'),
+                      ),
                     ),
                   ],
                 ),
@@ -113,9 +142,20 @@ class _DashboardPageState extends State<DashboardPage> {
                                     'Total Customers',
                                     style: CreditBillTextTheme.inputLabel,
                                   ),
-                                  Text(
-                                    '${state.customers.length}',
-                                    style: CreditBillTextTheme.screenHeading,
+                                  TweenAnimationBuilder<int>(
+                                    tween: IntTween(
+                                      begin: 0,
+                                      end: state.customers.length,
+                                    ),
+                                    duration: const Duration(milliseconds: 600),
+                                    curve: Curves.easeOutCubic,
+                                    builder: (context, value, _) {
+                                      return Text(
+                                        '$value',
+                                        style:
+                                            CreditBillTextTheme.screenHeading,
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
@@ -145,15 +185,18 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         );
                       }
+                      final count = state.customers.length > 5
+                          ? 5
+                          : state.customers.length;
                       return ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: state.customers.length > 5
-                            ? 5
-                            : state.customers.length,
+                        itemCount: count,
                         itemBuilder: (context, index) {
                           final customer = state.customers[index];
-                          return Card(
+                          return CreditBillAnimatedEntrance(
+                            index: index,
+                            child: Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             elevation: 1,
                             shape: RoundedRectangleBorder(
@@ -191,6 +234,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 );
                               },
                             ),
+                          ),
                           );
                         },
                       );

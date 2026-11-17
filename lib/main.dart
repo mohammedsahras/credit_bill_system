@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_common_ffi.dart' as ffi;
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart' as ffi_web;
+
+import 'core/theme/theme_controller.dart';
 import 'app.dart';
 import 'app/presentation/auth_wrapper.dart';
 
@@ -29,5 +31,10 @@ void main() async {
     databaseFactory = ffi.databaseFactoryFfi;
   }
 
-  runApp(const CreditBillApp(home: AuthWrapper()));
+  // Load the persisted theme mode before the first frame so the app
+  // opens in the chosen theme without a light/dark flash.
+  final themeController = ThemeController();
+  await themeController.load();
+
+  runApp(CreditBillApp(home: AuthWrapper(), themeController: themeController));
 }
